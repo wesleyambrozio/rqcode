@@ -20,6 +20,10 @@ final class Router
 
     public function dispatch(string $method, string $path): void
     {
+        if ($method === 'HEAD') {
+            $method = 'GET';
+        }
+
         $route = $this->routes[$method][$path] ?? null;
 
         if (!$route) {
