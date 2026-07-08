@@ -6,9 +6,9 @@ namespace App\Core;
 
 abstract class Controller
 {
-    protected function view(string $template, array $data = []): void
+    protected function view(string $template, array $data = [], string $layout = 'main'): void
     {
-        view($template, $data);
+        view($template, $data, $layout);
     }
 
     protected function input(string $key, mixed $default = null): mixed
