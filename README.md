@@ -62,6 +62,12 @@ nano .env
 composer migrate-seed
 ```
 
+Tambem ha um script de deploy em `deploy/deploy-vps.sh`. Exemplo:
+
+```bash
+APP_DIR=/var/www/rqcode BRANCH=main bash deploy/deploy-vps.sh
+```
+
 Agendamento sugerido para avisos de vencimento:
 
 ```cron
