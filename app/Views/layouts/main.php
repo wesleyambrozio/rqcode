@@ -13,15 +13,15 @@
       <div class="brand"><?= e(config('app.name')) ?></div>
       <nav class="nav">
         <?php foreach ([
-          '/' => 'Dashboard',
+          '/dashboard' => 'Dashboard',
           '/vendedores' => 'Vendedores',
           '/sistemas' => 'Sistemas e planos',
           '/vendas' => 'Vendas',
           '/financeiro' => 'Financeiro',
           '/suporte' => 'Suporte',
-          '/integracoes' => 'Integrações',
-          '/relatorios' => 'Relatórios',
-          '/configuracoes' => 'Configurações',
+          '/integracoes' => 'Integracoes',
+          '/relatorios' => 'Relatorios',
+          '/configuracoes' => 'Configuracoes',
         ] as $path => $label): ?>
           <a class="<?= $current === $path ? 'active' : '' ?>" href="<?= $path ?>"><?= $label ?></a>
         <?php endforeach; ?>
@@ -31,7 +31,7 @@
       <header class="topbar">
         <div>
           <h1><?= e($title ?? 'Central') ?></h1>
-          <p class="muted">Administração unificada dos seus SaaS.</p>
+          <p class="muted">Administracao unificada dos seus SaaS.</p>
         </div>
         <form method="post" action="/logout">
           <?= csrf_field() ?>

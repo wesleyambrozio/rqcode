@@ -16,7 +16,8 @@ $router->get('/login', 'AuthController@login');
 $router->post('/login', 'AuthController@authenticate');
 $router->post('/logout', 'AuthController@logout');
 
-$router->get('/', 'DashboardController@index', true);
+$router->get('/', 'PublicController@soon');
+$router->get('/dashboard', 'DashboardController@index', true);
 $router->get('/vendedores', 'VendorController@index', true);
 $router->post('/vendedores', 'VendorController@store', true);
 $router->get('/sistemas', 'SystemController@index', true);
@@ -33,8 +34,11 @@ $router->post('/integracoes', 'IntegrationController@store', true);
 $router->get('/relatorios', 'ReportController@index', true);
 $router->get('/configuracoes', 'SettingsController@index', true);
 
-if (!Auth::check() && !in_array(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH), ['/login'], true)) {
+$currentPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?: '/';
+$publicRoutes = ['/', '/login'];
+
+if (!Auth::check() && !in_array($currentPath, $publicRoutes, true)) {
     redirect('/login');
 }
 
-$router->dispatch($_SERVER['REQUEST_METHOD'], parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?: '/');
+$router->dispatch($_SERVER['REQUEST_METHOD'], $currentPath);

@@ -15,10 +15,10 @@ final class AuthController extends Controller
     public function authenticate(): void
     {
         if (Auth::attempt((string) $this->input('email'), (string) $this->input('password'))) {
-            redirect('/');
+            redirect('/dashboard');
         }
 
-        $_SESSION['flash'] = 'E-mail ou senha inválidos.';
+        $_SESSION['flash'] = 'E-mail ou senha invalidos.';
         redirect('/login');
     }
 
