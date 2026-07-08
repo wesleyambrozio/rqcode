@@ -1,0 +1,24 @@
+{
+  "name": "rqcode/central-saas",
+  "description": "Central administrativa para SaaS, vendas, financeiro e suporte.",
+  "type": "project",
+  "license": "proprietary",
+  "autoload": {
+    "psr-4": {
+      "App\\": "app/"
+    },
+    "files": [
+      "app/Helpers/functions.php"
+    ]
+  },
+  "require": {
+    "php": "^8.1",
+    "ext-pdo": "*"
+  },
+  "scripts": {
+    "serve": "php -S 127.0.0.1:8080 -t public",
+    "migrate": "php bin/migrate.php",
+    "migrate-seed": "php bin/migrate.php --seed",
+    "due-alerts": "php bin/due-alerts.php"
+  }
+}
