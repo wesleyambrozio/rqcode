@@ -1,4 +1,15 @@
 /.env
+
+# Project artifacts
+*.zip
+esbocoSite.txt
+padraoProjeto.txt
+
+# Duplicate/backup folders
+imagens/imagensSistemas/imagensSistemas/
+
+# Original source images (public assets are the reference)
+/imagens/
 .env
 .env.*
 !.env.example

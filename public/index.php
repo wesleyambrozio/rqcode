@@ -17,6 +17,7 @@ $router->post('/login', 'AuthController@authenticate');
 $router->post('/logout', 'AuthController@logout');
 
 $router->get('/', 'PublicController@soon');
+$router->post('/contato', 'PublicController@contact');
 $router->get('/dashboard', 'DashboardController@index', true);
 $router->get('/vendedores', 'VendorController@index', true);
 $router->post('/vendedores', 'VendorController@store', true);
@@ -35,7 +36,7 @@ $router->get('/relatorios', 'ReportController@index', true);
 $router->get('/configuracoes', 'SettingsController@index', true);
 
 $currentPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?: '/';
-$publicRoutes = ['/', '/login'];
+$publicRoutes = ['/', '/login', '/contato'];
 
 if (!Auth::check() && !in_array($currentPath, $publicRoutes, true)) {
     redirect('/login');
