@@ -1,0 +1,4 @@
+interface:
+  display_name: "Operações Fleetway"
+  short_description: "Validar, publicar e operar o Fleetway com segurança"
+  default_prompt: "Audite o Fleetway, execute as validações seguras e prepare uma publicação com rollback."

@@ -43,3 +43,12 @@ out
 .nuxt
 .output
 *.tsbuildinfo
+
+# Project administration: keep templates and status, never secrets
+/projetos/**/ACESSOS.md
+/projetos/**/secrets/
+*.pem
+*.key
+*.p12
+*.pfx
+/projetos/**/render-*/

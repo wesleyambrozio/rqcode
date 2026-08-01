@@ -20,6 +20,7 @@
     "serve": "php -S 127.0.0.1:8080 -t public",
     "migrate": "php bin/migrate.php",
     "migrate-seed": "php bin/migrate.php --seed",
-    "due-alerts": "php bin/due-alerts.php"
+    "due-alerts": "php bin/due-alerts.php",
+    "sync:fleetway": "php bin/sync-fleetway.php"
   }
 }
