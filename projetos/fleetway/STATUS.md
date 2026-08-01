@@ -27,7 +27,7 @@
 - PHP local: Sodium habilitado; extensões inexistentes de Interbase, Oracle, DB2 e Informix desativadas. Backup do `php.ini` preservado com sufixo `rqcode-backup-20260801`.
 - Produção: HTTPS 200, SSH funcional, Nginx/PHP-FPM ativos e 40% do disco utilizado.
 - Integração local Fleetway → RQCODE: HMAC aprovado; requisição sem assinatura retorna 401 e snapshot assinado gravou métricas no RQCODE.
-- Git Fleetway: repositório local criado no commit `8fccef2`, origin configurado para `https://github.com/wesleyambrozio/fleetflow-hub.git`; push bloqueado por autenticação GitHub inválida nesta máquina.
+- Git Fleetway: repositório privado publicado em `https://github.com/wesleyambrozio/fleetway-php`, branch `main`, commit `8fccef2`. O repositório React/Supabase `fleetflow-hub` foi preservado sem alterações.
 
 ## Decisão de arquitetura
 
