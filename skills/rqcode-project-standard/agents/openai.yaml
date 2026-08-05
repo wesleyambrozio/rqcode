@@ -1,0 +1,4 @@
+interface:
+  display_name: "RQCODE Project Standard"
+  short_description: "Padroniza produtos PHP e MariaDB da RQCODE"
+  default_prompt: "Use $rqcode-project-standard para auditar e adequar este projeto ao padrão oficial RQCODE."
