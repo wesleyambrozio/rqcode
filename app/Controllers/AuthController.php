@@ -15,7 +15,7 @@ final class AuthController extends Controller
     public function authenticate(): void
     {
         if (Auth::attempt((string) $this->input('email'), (string) $this->input('password'))) {
-            redirect('/dashboard');
+            redirect(Auth::user()['role'] === 'accountant' ? '/contabilidade' : '/dashboard');
         }
 
         $_SESSION['flash'] = 'E-mail ou senha invalidos.';

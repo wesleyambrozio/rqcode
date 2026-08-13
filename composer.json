@@ -21,6 +21,8 @@
     "migrate": "php bin/migrate.php",
     "migrate-seed": "php bin/migrate.php --seed",
     "due-alerts": "php bin/due-alerts.php",
-    "sync:fleetway": "php bin/sync-fleetway.php"
+    "alerts:dry-run": "php bin/due-alerts.php --dry-run",
+    "sync:fleetway": "php bin/sync-fleetway.php",
+    "sync:projects": "php bin/sync-projects.php"
   }
 }

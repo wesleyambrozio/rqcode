@@ -36,6 +36,13 @@ final class Router
             redirect('/login');
         }
 
+        $user = Auth::user();
+        if (($user['role'] ?? '') === 'accountant'
+            && $path !== '/logout'
+            && !str_starts_with($path, '/contabilidade')) {
+            redirect('/contabilidade');
+        }
+
         if ($method === 'POST' && !hash_equals($_SESSION['_csrf'] ?? '', $_POST['_csrf'] ?? '')) {
             http_response_code(419);
             exit('Sessão expirada. Volte e tente novamente.');

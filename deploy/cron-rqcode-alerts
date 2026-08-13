@@ -1,0 +1,2 @@
+# Executar diariamente às 08:00 no fuso configurado no VPS.
+0 8 * * * cd /var/www/rqcode && /usr/bin/php bin/due-alerts.php >> storage/alerts.log 2>&1

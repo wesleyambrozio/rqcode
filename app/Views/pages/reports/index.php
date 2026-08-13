@@ -1,10 +1,29 @@
-<section class="grid cols-2">
-  <div class="card metric"><span class="muted">MRR registrado</span><strong><?= money($mrr) ?></strong></div>
-  <div class="card metric"><span class="muted">Comissões acumuladas</span><strong><?= money($commissions) ?></strong></div>
+<?php $query=http_build_query(array_filter($filters,fn($v)=>$v!==''&&$v!==0)); ?>
+<section class="card report-filter-card">
+  <div class="card-heading"><div><span class="section-kicker">ANÁLISE FINANCEIRA</span><h2>Filtros do relatório</h2></div><a class="btn" href="/relatorios/exportar?<?= e($query) ?>">Exportar CSV</a></div>
+  <form method="get" action="/relatorios" class="form-grid report-filters">
+    <label>De <input type="date" name="from" value="<?= e($filters['from']) ?>"></label><label>Até <input type="date" name="to" value="<?= e($filters['to']) ?>"></label>
+    <label>Natureza <select name="direction"><option value="">Todas</option><option value="receivable" <?= $filters['direction']==='receivable'?'selected':'' ?>>Receber</option><option value="payable" <?= $filters['direction']==='payable'?'selected':'' ?>>Pagar</option></select></label>
+    <label>Status <select name="status"><option value="">Todos</option><option value="pending" <?= $filters['status']==='pending'?'selected':'' ?>>Pendente</option><option value="paid" <?= $filters['status']==='paid'?'selected':'' ?>>Liquidado</option><option value="cancelled" <?= $filters['status']==='cancelled'?'selected':'' ?>>Cancelado</option></select></label>
+    <label>Plano de contas <select name="account_id"><option value="">Todas as contas</option><?php foreach($accounts as $account): ?><option value="<?= (int)$account['id'] ?>" <?= $filters['account_id']==$account['id']?'selected':'' ?>><?= e($account['code'].' · '.$account['name']) ?></option><?php endforeach; ?></select></label>
+    <div class="actions"><button type="submit">Atualizar relatório</button></div>
+  </form>
 </section>
-<section class="card" style="margin-top:16px">
-  <h2>Ranking de vendedores</h2>
-  <div class="table-wrap"><table><tr><th>Vendedor</th><th>Vendas</th><th>Total vendido</th></tr>
-    <?php foreach ($vendors as $vendor): ?><tr><td><?= e($vendor['name']) ?></td><td><?= e($vendor['sales_count']) ?></td><td><?= money($vendor['total']) ?></td></tr><?php endforeach; ?>
-  </table></div>
+
+<section class="grid cols-4 metric-grid report-metrics">
+  <article class="card metric metric-blue"><span class="metric-icon">↙</span><div><span class="muted">Total a receber</span><strong><?= money($totals['receivable']) ?></strong><small>No período</small></div></article>
+  <article class="card metric metric-amber"><span class="metric-icon">↗</span><div><span class="muted">Total a pagar</span><strong><?= money($totals['payable']) ?></strong><small>No período</small></div></article>
+  <article class="card metric metric-green"><span class="metric-icon">$</span><div><span class="muted">Resultado realizado</span><strong><?= money($totals['result']) ?></strong><small>Recebido menos pago</small></div></article>
+  <article class="card metric metric-red"><span class="metric-icon">!</span><div><span class="muted">Vencido</span><strong><?= money($totals['overdue']) ?></strong><small>Pendente e atrasado</small></div></article>
+  <article class="card metric metric-cyan"><span class="metric-icon">✓</span><div><span class="muted">Recebido</span><strong><?= money($totals['received']) ?></strong><small>Liquidado</small></div></article>
+  <article class="card metric metric-violet"><span class="metric-icon">✓</span><div><span class="muted">Pago</span><strong><?= money($totals['paid']) ?></strong><small>Liquidado</small></div></article>
+  <article class="card metric metric-blue"><span class="metric-icon">↻</span><div><span class="muted">MRR comercial</span><strong><?= money($mrr) ?></strong><small>Vendas recorrentes ativas</small></div></article>
+  <article class="card metric metric-amber"><span class="metric-icon">%</span><div><span class="muted">Comissões</span><strong><?= money($commissions) ?></strong><small>Acumuladas</small></div></article>
 </section>
+
+<section class="grid cols-2 dashboard-sections">
+  <div class="card data-card"><div class="card-heading"><div><span class="section-kicker">COMPOSIÇÃO</span><h2>Por plano de contas</h2></div></div><div class="table-wrap"><table><tr><th>Conta</th><th>Natureza</th><th>Lançamentos</th><th>Total</th></tr><?php foreach($byAccount as $row): ?><tr><td><strong><?= e($row['name']) ?></strong></td><td><?= $row['direction']==='receivable'?'Receber':'Pagar' ?></td><td><?= (int)$row['count'] ?></td><td><?= money($row['amount']) ?></td></tr><?php endforeach; ?><?php if(!$byAccount): ?><tr><td colspan="4" class="empty-state">Sem dados no período.</td></tr><?php endif; ?></table></div></div>
+  <div class="card data-card"><div class="card-heading"><div><span class="section-kicker">EVOLUÇÃO</span><h2>Resumo mensal</h2></div></div><div class="table-wrap"><table><tr><th>Mês</th><th>Receber</th><th>Pagar</th><th>Saldo previsto</th></tr><?php foreach($monthly as $row): ?><tr><td><strong><?= e($row['month']) ?></strong></td><td><?= money($row['receivable']) ?></td><td><?= money($row['payable']) ?></td><td><?= money($row['receivable']-$row['payable']) ?></td></tr><?php endforeach; ?><?php if(!$monthly): ?><tr><td colspan="4" class="empty-state">Sem dados no período.</td></tr><?php endif; ?></table></div></div>
+</section>
+
+<section class="card finance-table-card"><div class="card-heading"><div><span class="section-kicker">DETALHAMENTO</span><h2>Lançamentos do período</h2></div><span class="heading-icon">≡</span></div><div class="table-wrap"><table><tr><th>Vencimento</th><th>Descrição</th><th>Conta</th><th>Natureza</th><th>Forma</th><th>Valor</th><th>Status</th></tr><?php foreach($entries as $entry): ?><tr><td><?= e($entry['due_date']) ?></td><td><strong><?= e($entry['description']) ?></strong></td><td><?= e(($entry['account_code']?$entry['account_code'].' · ':'').($entry['account_name']?:$entry['category'])) ?></td><td><?= $entry['direction']==='receivable'?'Receber':'Pagar' ?></td><td><?= e($entry['payment_method_name']?:$entry['payment_method']?:'—') ?></td><td><?= money($entry['amount']) ?></td><td><span class="badge <?= $entry['status']==='paid'?'success':($entry['status']==='cancelled'?'danger':'warning') ?>"><?= e($entry['status']) ?></span></td></tr><?php endforeach; ?><?php if(!$entries): ?><tr><td colspan="7" class="empty-state">Nenhum lançamento encontrado.</td></tr><?php endif; ?></table></div></section>

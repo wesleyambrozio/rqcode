@@ -1,0 +1,3 @@
+<?php
+declare(strict_types=1);require dirname(__DIR__).'/vendor/autoload.php';$envFile=dirname(__DIR__).'/.env';if(is_file($envFile))foreach(file($envFile,FILE_IGNORE_NEW_LINES|FILE_SKIP_EMPTY_LINES)as$line){if(!str_starts_with(trim($line),'#'))putenv(trim($line));}
+$projects=array_slice($argv,1)?:['checklist','confeitaria','evc_insight'];$sync=new App\Services\ProjectSyncService();$failed=0;foreach($projects as$key){try{$p=$sync->sync($key);printf("[OK] %s: %d conta(s), %d usuário(s).\n",$key,$p['metrics']['accounts_total'],$p['metrics']['active_users']);}catch(Throwable$e){$failed++;fwrite(STDERR,"[ERRO] {$key}: {$e->getMessage()}\n");}}exit($failed?1:0);
