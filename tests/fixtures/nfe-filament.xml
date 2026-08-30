@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe">
+  <NFe><infNFe Id="NFe31260812345678000123550010000001231000001238">
+    <ide><tpNF>1</tpNF><mod>55</mod><serie>1</serie><nNF>123</nNF><dhEmi>2026-08-30T10:00:00-03:00</dhEmi></ide>
+    <emit><CNPJ>12345678000123</CNPJ><xNome>Fornecedor Teste NF-e</xNome></emit>
+    <dest><CNPJ>11222333000181</CNPJ><xNome>EMPRESA TESTE LTDA</xNome></dest>
+    <det nItem="1"><prod><cProd>PLA01</cProd><cEAN>SEM GTIN</cEAN><xProd>Filamento PLA Azul 1KG</xProd><NCM>39169090</NCM><CFOP>5102</CFOP><uCom>UN</uCom><qCom>2</qCom><vUnCom>89.9</vUnCom><vProd>179.8</vProd></prod></det>
+    <det nItem="2"><prod><cProd>BICO</cProd><xProd>Bico de impressora</xProd><NCM>84779000</NCM><CFOP>5102</CFOP><uCom>UN</uCom><qCom>1</qCom><vUnCom>20</vUnCom><vProd>20</vProd></prod></det>
+    <total><ICMSTot><vProd>199.8</vProd><vFrete>10</vFrete><vDesc>0</vDesc><vTotTrib>30</vTotTrib><vNF>209.8</vNF></ICMSTot></total>
+  </infNFe></NFe>
+  <protNFe><infProt><chNFe>31260812345678000123550010000001231000001238</chNFe><cStat>100</cStat></infProt></protNFe>
+</nfeProc>

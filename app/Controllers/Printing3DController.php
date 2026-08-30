@@ -41,8 +41,10 @@ final class Printing3DController extends Controller
         $weight=(float)$this->input('spool_net_weight_g');
         $currentWeight=(float)$this->input('current_weight_g');
         if ($currentWeight <= 0) $currentWeight=$weight;
-        $statement=Database::connection()->prepare('insert into filaments_3d(supplier_id,name,material,brand,color,diameter_mm,spool_net_weight_g,current_weight_g,purchase_price,batch_code,purchase_date,minimum_stock_g) values(:supplier,:name,:material,:brand,:color,:diameter,:weight,:current,:price,:batch,:purchase_date,:minimum)');
+        $db=Database::connection();
+        $statement=$db->prepare('insert into filaments_3d(supplier_id,name,material,brand,color,diameter_mm,spool_net_weight_g,current_weight_g,purchase_price,batch_code,purchase_date,minimum_stock_g) values(:supplier,:name,:material,:brand,:color,:diameter,:weight,:current,:price,:batch,:purchase_date,:minimum)');
         $statement->execute(['supplier'=>(int)$this->input('supplier_id')?:null,'name'=>trim((string)$this->input('name')),'material'=>$this->input('material'),'brand'=>$this->input('brand')?:null,'color'=>$this->input('color')?:null,'diameter'=>(float)$this->input('diameter_mm',1.75),'weight'=>$weight,'current'=>$currentWeight,'price'=>(float)$this->input('purchase_price'),'batch'=>$this->input('batch_code')?:null,'purchase_date'=>$this->input('purchase_date')?:null,'minimum'=>(float)$this->input('minimum_stock_g')]);
+        $id=(int)$db->lastInsertId();$db->prepare('update filaments_3d set inventory_code=:code where id=:id')->execute(['code'=>'FIL-'.str_pad((string)$id,6,'0',STR_PAD_LEFT),'id'=>$id]);
         $_SESSION['flash_success']='Filamento cadastrado.'; redirect('/impressao-3d?view=filamentos');
     }
 

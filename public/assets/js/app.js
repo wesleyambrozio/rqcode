@@ -82,3 +82,9 @@ energyDialog?.querySelector('[data-energy-apply]')?.addEventListener('click', ()
   if (minutes) minutes.value = Math.round(result.hours * 60);
   energyDialog.close();
 });
+
+const payableToggle = document.querySelector('[data-payable-toggle]');
+const payableDate = document.querySelector('[data-payable-date]');
+function refreshPayableDate() { if (payableDate) payableDate.hidden = !payableToggle?.checked; }
+payableToggle?.addEventListener('change', refreshPayableDate);
+refreshPayableDate();

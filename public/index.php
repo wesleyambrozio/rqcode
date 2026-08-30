@@ -51,6 +51,10 @@ $router->post('/impressao-3d/categorias', 'Printing3DController@category', true)
 $router->post('/impressao-3d/canais', 'Printing3DController@channel', true);
 $router->post('/impressao-3d/producao', 'Printing3DController@production', true);
 $router->post('/impressao-3d/vendas', 'Printing3DController@sale', true);
+$router->get('/impressao-3d/notas-fiscais', 'FiscalInvoiceController@index', true);
+$router->post('/impressao-3d/notas-fiscais/importar', 'FiscalInvoiceController@import', true);
+$router->post('/impressao-3d/notas-fiscais/confirmar', 'FiscalInvoiceController@confirm', true);
+$router->get('/impressao-3d/notas-fiscais/xml', 'FiscalInvoiceController@download', true);
 
 $currentPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?: '/';
 $publicRoutes = ['/', '/login', '/contato'];
