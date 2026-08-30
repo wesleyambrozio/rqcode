@@ -7,7 +7,22 @@ final class FiscalInvoiceController extends Controller
 {
  public function index():void{$this->allowAdmin();$db=Database::connection();$invoices=$db->query("select n.*,s.name supplier_name,count(i.id) item_count,coalesce(sum(case when i.is_filament then 1 else 0 end),0) filament_count from fiscal_invoices n left join suppliers_3d s on s.id=n.supplier_id left join fiscal_invoice_items i on i.fiscal_invoice_id=n.id group by n.id,s.name order by n.issued_at desc,n.id desc limit 100")->fetchAll();$selectedInvoice=null;$selectedItems=[];$id=(int)$this->input('id');if($id){$s=$db->prepare('select * from fiscal_invoices where id=:id');$s->execute(['id'=>$id]);$selectedInvoice=$s->fetch()?:null;if($selectedInvoice){$s=$db->prepare('select i.*,f.inventory_code from fiscal_invoice_items i left join filaments_3d f on f.id=i.filament_id where i.fiscal_invoice_id=:id order by i.item_number');$s->execute(['id'=>$id]);$selectedItems=$s->fetchAll();}}$preview=$_SESSION['nfe_preview']??null;if($preview&&($preview['created_at']??0)<time()-3600){$this->discardPreview();$preview=null;}if($preview){$service=new NfeXmlService();foreach($preview['data']['items'] as &$item)$item['filament_details']=$service->filamentDetails($item);unset($item);}$this->view('printing3d/invoices',compact('invoices','selectedInvoice','selectedItems','preview')+['title'=>'Notas fiscais 3D']);}
 
- public function import():void{$this->allowAdmin();$file=$_FILES['xml']??null;if(!$file||$file['error']!==UPLOAD_ERR_OK||$file['size']>10*1024*1024||!is_uploaded_file($file['tmp_name']))$this->fail('Envie um XML de NF-e com ate 10 MB.');$contents=file_get_contents($file['tmp_name']);if($contents===false)$this->fail('Nao foi possivel ler o XML.');try{$data=(new NfeXmlService())->parse($contents);$db=Database::connection();$s=$db->prepare('select id from fiscal_invoices where access_key=:key');$s->execute(['key'=>$data['access_key']]);if($s->fetchColumn())throw new RuntimeException('Esta NF-e ja foi importada.');$directory=$this->storageDirectory();$this->discardPreview();$name='preview-'.bin2hex(random_bytes(16)).'.xml';if(file_put_contents($directory.'/'.$name,$contents,LOCK_EX)===false)throw new RuntimeException('Nao foi possivel preservar o XML para conferencia.');@chmod($directory.'/'.$name,0640);$_SESSION['nfe_preview']=['data'=>$data,'temp_name'=>$name,'created_at'=>time()];$_SESSION['flash_success']='XML lido. Confira os itens antes de confirmar a entrada.';}catch(Throwable $e){$_SESSION['flash']=$e instanceof RuntimeException?$e->getMessage():'Nao foi possivel ler a NF-e.';}redirect('/impressao-3d/notas-fiscais');}
+ public function import():void
+ {
+  $this->allowAdmin();
+  $file=$_FILES['xml']??null;
+  if(!$file||($file['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_OK)$this->fail($this->uploadError((int)($file['error']??UPLOAD_ERR_NO_FILE)));
+  if(($file['size']??0)>10*1024*1024||!is_uploaded_file($file['tmp_name']))$this->fail('Envie um XML de NF-e valido com ate 10 MB.');
+  $contents=file_get_contents($file['tmp_name']);
+  if($contents===false)$this->fail('Nao foi possivel ler o XML enviado.');
+
+  // Um novo upload sempre substitui a conferencia em andamento.
+  $this->discardPreview();
+  try{
+   $data=(new NfeXmlService())->parse($contents);$db=Database::connection();$s=$db->prepare('select id from fiscal_invoices where access_key=:key');$s->execute(['key'=>$data['access_key']]);if($s->fetchColumn())throw new RuntimeException('Esta NF-e ja foi importada.');$directory=$this->storageDirectory();$name='preview-'.bin2hex(random_bytes(16)).'.xml';if(file_put_contents($directory.'/'.$name,$contents,LOCK_EX)===false)throw new RuntimeException('Nao foi possivel preservar o XML para conferencia.');@chmod($directory.'/'.$name,0640);$_SESSION['nfe_preview']=['data'=>$data,'temp_name'=>$name,'created_at'=>time()];$_SESSION['flash_success']='Novo XML lido. Confira os itens antes de confirmar a entrada.';
+  }catch(Throwable $e){$_SESSION['flash']=$e instanceof RuntimeException?$e->getMessage():'Nao foi possivel ler a NF-e.';}
+  redirect('/impressao-3d/notas-fiscais');
+ }
 
  public function confirm():void
  {
@@ -24,6 +39,7 @@ final class FiscalInvoiceController extends Controller
  private function material(string $value):string{$allowed=['PLA','PETG','ABS','TPU','ASA','Nylon','Resina','Outro'];return in_array($value,$allowed,true)?$value:'Outro';}
  private function storageDirectory():string{$directory=dirname(__DIR__,2).'/storage/fiscal-invoices';if(!is_dir($directory)&&!mkdir($directory,0770,true)&&!is_dir($directory))throw new RuntimeException('Nao foi possivel preparar o armazenamento fiscal.');return $directory;}
  private function discardPreview():void{$p=$_SESSION['nfe_preview']??null;if($p){$path=$this->storageDirectory().'/'.basename((string)($p['temp_name']??''));if(is_file($path))unlink($path);}unset($_SESSION['nfe_preview']);}
+ private function uploadError(int $error):string{return match($error){UPLOAD_ERR_INI_SIZE,UPLOAD_ERR_FORM_SIZE=>'O XML excede o limite permitido de 10 MB.',UPLOAD_ERR_PARTIAL=>'O envio do XML ficou incompleto. Tente novamente.',UPLOAD_ERR_NO_FILE=>'Selecione um novo arquivo XML.',default=>'Nao foi possivel receber o XML. Tente novamente.'};}
  private function fail(string $message):never{$_SESSION['flash']=$message;redirect('/impressao-3d/notas-fiscais');}
  private function allowAdmin():void{if(!in_array(Auth::user()['role']??'',['owner','admin'],true)){http_response_code(403);exit('Acesso restrito.');}}
 }
