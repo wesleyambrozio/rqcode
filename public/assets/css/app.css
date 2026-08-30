@@ -183,6 +183,15 @@ button:hover, .btn:hover { filter: brightness(1.06); }
 .cost-dialog { width:min(620px,calc(100% - 28px)); padding:0; border:1px solid var(--line); border-radius:12px; color:var(--text); background:var(--panel); box-shadow:0 24px 80px rgba(0,0,0,.35); }.cost-dialog::backdrop { background:rgba(2,9,18,.65); backdrop-filter:blur(3px); }.cost-dialog form { padding:22px; }.dialog-head { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:20px; }.dialog-head h2 { margin:4px 0 0; }.dialog-close { padding:5px 10px; color:var(--muted); background:transparent; box-shadow:none; font-size:24px; }.cost-result { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:18px 0 12px; }.cost-result span { display:grid; gap:5px; padding:14px; border:1px solid var(--line); border-radius:8px; color:var(--muted); font-size:10px; background:var(--panel-soft); }.cost-result b,.cost-result strong { color:var(--text); font-size:18px; }.calculator-note { font-size:10px; line-height:1.5; }
 .invoice-help { display:grid; gap:12px; }.invoice-help p { margin:0; padding:13px 14px; border-left:3px solid var(--primary); color:var(--muted); background:var(--panel-soft); font-size:11px; line-height:1.55; }
 .invoice-confirm { display:flex; align-items:end; gap:12px; flex-wrap:wrap; margin-top:18px; }.invoice-confirm label { min-width:220px; }.invoice-confirm button { margin-left:auto; }
+.list-first-layout,.list-first-stack { display:grid; grid-template-columns:1fr; gap:16px; margin-top:16px; }
+.list-first-layout > .card,.list-first-stack > .card { width:100%; }
+.workflow-list-card { order:1; }
+.workflow-form-card { order:2; padding:0 20px 20px; border-color:color-mix(in srgb,var(--primary) 22%,var(--line)); }
+.workflow-form-card > form { padding-top:2px; }
+.workflow-form-card[hidden] { display:none !important; }
+.workflow-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
+.workflow-heading h2 { margin:0; }
+.workflow-cancel { margin-left:4px; }
 
 .login-page, .soon-page { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: radial-gradient(circle at 22% 18%, rgba(0,169,214,.18), transparent 25%), linear-gradient(145deg, var(--sidebar), #0a3763); }
 .login-box, .soon-box { width: min(430px, 100%); padding: 32px; border: 1px solid rgba(255,255,255,.12); border-radius: 20px; color: var(--text); background: var(--panel); box-shadow: 0 28px 80px rgba(0,0,0,.3); }

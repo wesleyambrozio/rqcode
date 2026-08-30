@@ -16,6 +16,9 @@ final class Printing3DController extends Controller
         $suppliers=$db->query('select * from suppliers_3d order by active desc,name')->fetchAll();
         $categories=$db->query('select * from product_categories_3d order by active desc,name')->fetchAll();
         $filaments=$db->query('select f.*,s.name supplier_name,(f.purchase_price/nullif(f.spool_net_weight_g,0)) cost_per_g from filaments_3d f left join suppliers_3d s on s.id=f.supplier_id order by f.active desc,f.name')->fetchAll();
+        $editingFilament=null;
+        $editingFilamentId=(int)$this->input('edit_filament');
+        if($editingFilamentId>0){$statement=$db->prepare('select * from filaments_3d where id=:id');$statement->execute(['id'=>$editingFilamentId]);$editingFilament=$statement->fetch()?:null;}
         $products=$db->query("select p.*,c.name category_name,coalesce(sum(pf.quantity_g*(f.purchase_price/nullif(f.spool_net_weight_g,0))),0) filament_cost from products_3d p left join product_categories_3d c on c.id=p.category_id left join product_filaments_3d pf on pf.product_id=p.id left join filaments_3d f on f.id=pf.filament_id group by p.id order by p.active desc,p.name")->fetchAll();
         foreach($products as &$product) $product['unit_cost']=$this->productCost($product,(float)$product['filament_cost']);
         $channels=$db->query('select * from sales_channels_3d order by active desc,name')->fetchAll();
@@ -24,7 +27,7 @@ final class Printing3DController extends Controller
         $summary=['products'=>count($products),'stock_cost'=>array_sum(array_map(fn($p)=>(float)$p['stock_quantity']*(float)$p['unit_cost'],$products)),'low_filaments'=>count(array_filter($filaments,fn($f)=>(float)$f['current_weight_g']<=(float)$f['minimum_stock_g'])),'profit'=>array_sum(array_column($sales,'net_profit'))];
         $allowedViews=['dashboard','pecas','categorias','filamentos','fornecedores','producao','vendas','canais'];
         $section=in_array((string)$this->input('view'),$allowedViews,true)?(string)$this->input('view'):'dashboard';
-        $this->view('printing3d/index',compact('suppliers','categories','filaments','products','channels','orders','sales','summary','section')+['title'=>'Producao 3D']);
+        $this->view('printing3d/index',compact('suppliers','categories','filaments','editingFilament','products','channels','orders','sales','summary','section')+['title'=>'Producao 3D']);
     }
 
     public function supplier(): void
@@ -38,14 +41,26 @@ final class Printing3DController extends Controller
     public function filament(): void
     {
         $this->allowAdmin();
+        $id=(int)$this->input('id');
         $weight=(float)$this->input('spool_net_weight_g');
         $currentWeight=(float)$this->input('current_weight_g');
-        if ($currentWeight <= 0) $currentWeight=$weight;
+        $name=trim((string)$this->input('name'));
+        $price=(float)$this->input('purchase_price');
+        if($name===''||$weight<=0||$price<0){$_SESSION['flash']='Informe identificacao, peso e custo validos.';redirect('/impressao-3d?view=filamentos'.($id?'&edit_filament='.$id:''));}
+        if($id===0&&$currentWeight<=0)$currentWeight=$weight;
+        if($currentWeight<0)$currentWeight=0;
         $db=Database::connection();
-        $statement=$db->prepare('insert into filaments_3d(supplier_id,name,material,brand,color,diameter_mm,spool_net_weight_g,current_weight_g,purchase_price,batch_code,purchase_date,minimum_stock_g) values(:supplier,:name,:material,:brand,:color,:diameter,:weight,:current,:price,:batch,:purchase_date,:minimum)');
-        $statement->execute(['supplier'=>(int)$this->input('supplier_id')?:null,'name'=>trim((string)$this->input('name')),'material'=>$this->input('material'),'brand'=>$this->input('brand')?:null,'color'=>$this->input('color')?:null,'diameter'=>(float)$this->input('diameter_mm',1.75),'weight'=>$weight,'current'=>$currentWeight,'price'=>(float)$this->input('purchase_price'),'batch'=>$this->input('batch_code')?:null,'purchase_date'=>$this->input('purchase_date')?:null,'minimum'=>(float)$this->input('minimum_stock_g')]);
-        $id=(int)$db->lastInsertId();$db->prepare('update filaments_3d set inventory_code=:code where id=:id')->execute(['code'=>'FIL-'.str_pad((string)$id,6,'0',STR_PAD_LEFT),'id'=>$id]);
-        $_SESSION['flash_success']='Filamento cadastrado.'; redirect('/impressao-3d?view=filamentos');
+        $data=['supplier'=>(int)$this->input('supplier_id')?:null,'name'=>$name,'material'=>$this->input('material'),'brand'=>$this->input('brand')?:null,'color'=>$this->input('color')?:null,'diameter'=>(float)$this->input('diameter_mm',1.75),'weight'=>$weight,'current'=>$currentWeight,'price'=>$price,'batch'=>$this->input('batch_code')?:null,'purchase_date'=>$this->input('purchase_date')?:null,'minimum'=>max(0,(float)$this->input('minimum_stock_g'))];
+        if($id>0){
+            $statement=$db->prepare('update filaments_3d set supplier_id=:supplier,name=:name,material=:material,brand=:brand,color=:color,diameter_mm=:diameter,spool_net_weight_g=:weight,current_weight_g=:current,purchase_price=:price,batch_code=:batch,purchase_date=:purchase_date,minimum_stock_g=:minimum where id=:id');
+            $statement->execute($data+['id'=>$id]);
+            if($statement->rowCount()===0){$check=$db->prepare('select id from filaments_3d where id=:id');$check->execute(['id'=>$id]);if(!$check->fetchColumn()){$_SESSION['flash']='Filamento nao encontrado.';redirect('/impressao-3d?view=filamentos');}}
+            $_SESSION['flash_success']='Filamento atualizado.';
+        }else{
+            $statement=$db->prepare('insert into filaments_3d(supplier_id,name,material,brand,color,diameter_mm,spool_net_weight_g,current_weight_g,purchase_price,batch_code,purchase_date,minimum_stock_g) values(:supplier,:name,:material,:brand,:color,:diameter,:weight,:current,:price,:batch,:purchase_date,:minimum)');
+            $statement->execute($data);$id=(int)$db->lastInsertId();$db->prepare('update filaments_3d set inventory_code=:code where id=:id')->execute(['code'=>'FIL-'.str_pad((string)$id,6,'0',STR_PAD_LEFT),'id'=>$id]);$_SESSION['flash_success']='Filamento cadastrado.';
+        }
+        redirect('/impressao-3d?view=filamentos');
     }
 
     public function product(): void
