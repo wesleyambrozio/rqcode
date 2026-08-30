@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Core\Auth;
 use App\Core\Controller;
 use App\Core\Database;
+use App\Services\InventoryCodeService;
 use Throwable;
 
 final class Printing3DController extends Controller
@@ -25,8 +26,9 @@ final class Printing3DController extends Controller
         $orders=$db->query('select o.*,p.name product_name,p.sku from production_orders_3d o join products_3d p on p.id=o.product_id order by o.created_at desc limit 30')->fetchAll();
         $sales=$db->query('select s.*,p.name product_name,c.name channel_name from sales_3d s join products_3d p on p.id=s.product_id left join sales_channels_3d c on c.id=s.channel_id order by s.sold_at desc,s.id desc limit 30')->fetchAll();
         $summary=['products'=>count($products),'stock_cost'=>array_sum(array_map(fn($p)=>(float)$p['stock_quantity']*(float)$p['unit_cost'],$products)),'low_filaments'=>count(array_filter($filaments,fn($f)=>(float)$f['current_weight_g']<=(float)$f['minimum_stock_g'])),'profit'=>array_sum(array_column($sales,'net_profit'))];
-        $allowedViews=['dashboard','pecas','categorias','filamentos','fornecedores','producao','vendas','canais'];
+        $allowedViews=['dashboard','pecas','categorias','filamentos','producao','vendas','canais'];
         $section=in_array((string)$this->input('view'),$allowedViews,true)?(string)$this->input('view'):'dashboard';
+        if($section==='fornecedores')redirect('/fornecedores');
         $this->view('printing3d/index',compact('suppliers','categories','filaments','editingFilament','products','channels','orders','sales','summary','section')+['title'=>'Producao 3D']);
     }
 
@@ -51,15 +53,16 @@ final class Printing3DController extends Controller
         if($currentWeight<0)$currentWeight=0;
         $db=Database::connection();
         $data=['supplier'=>(int)$this->input('supplier_id')?:null,'name'=>$name,'material'=>$this->input('material'),'brand'=>$this->input('brand')?:null,'color'=>$this->input('color')?:null,'diameter'=>(float)$this->input('diameter_mm',1.75),'weight'=>$weight,'current'=>$currentWeight,'price'=>$price,'batch'=>$this->input('batch_code')?:null,'purchase_date'=>$this->input('purchase_date')?:null,'minimum'=>max(0,(float)$this->input('minimum_stock_g'))];
-        if($id>0){
+        $db->beginTransaction();
+        try{if($id>0){
             $statement=$db->prepare('update filaments_3d set supplier_id=:supplier,name=:name,material=:material,brand=:brand,color=:color,diameter_mm=:diameter,spool_net_weight_g=:weight,current_weight_g=:current,purchase_price=:price,batch_code=:batch,purchase_date=:purchase_date,minimum_stock_g=:minimum where id=:id');
             $statement->execute($data+['id'=>$id]);
             if($statement->rowCount()===0){$check=$db->prepare('select id from filaments_3d where id=:id');$check->execute(['id'=>$id]);if(!$check->fetchColumn()){$_SESSION['flash']='Filamento nao encontrado.';redirect('/impressao-3d?view=filamentos');}}
             $_SESSION['flash_success']='Filamento atualizado.';
         }else{
             $statement=$db->prepare('insert into filaments_3d(supplier_id,name,material,brand,color,diameter_mm,spool_net_weight_g,current_weight_g,purchase_price,batch_code,purchase_date,minimum_stock_g) values(:supplier,:name,:material,:brand,:color,:diameter,:weight,:current,:price,:batch,:purchase_date,:minimum)');
-            $statement->execute($data);$id=(int)$db->lastInsertId();$db->prepare('update filaments_3d set inventory_code=:code where id=:id')->execute(['code'=>'FIL-'.str_pad((string)$id,6,'0',STR_PAD_LEFT),'id'=>$id]);$_SESSION['flash_success']='Filamento cadastrado.';
-        }
+            $statement->execute($data);$id=(int)$db->lastInsertId();$code=(new InventoryCodeService())->next($db,'filament','FIL');$db->prepare('update filaments_3d set inventory_code=:code where id=:id')->execute(['code'=>$code,'id'=>$id]);$_SESSION['flash_success']='Filamento cadastrado com o codigo '.$code.'.';
+        }$db->commit();}catch(Throwable $exception){if($db->inTransaction())$db->rollBack();$_SESSION['flash']='Nao foi possivel salvar o filamento.';}
         redirect('/impressao-3d?view=filamentos');
     }
 

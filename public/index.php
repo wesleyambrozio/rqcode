@@ -43,8 +43,14 @@ $router->get('/contabilidade/documentos/download', 'AccountingController@downloa
 $router->post('/contabilidade/mensagens', 'AccountingController@message', true);
 $router->post('/contabilidade/contador', 'AccountingController@createAccountant', true);
 $router->get('/contabilidade/relatorio', 'AccountingController@report', true);
+$router->get('/fornecedores', 'SupplierController@index', true);
+$router->post('/fornecedores', 'SupplierController@store', true);
+$router->get('/notas-fiscais', 'FiscalInvoiceController@index', true);
+$router->post('/notas-fiscais/importar', 'FiscalInvoiceController@import', true);
+$router->post('/notas-fiscais/confirmar', 'FiscalInvoiceController@confirm', true);
+$router->get('/notas-fiscais/xml', 'FiscalInvoiceController@download', true);
 $router->get('/impressao-3d', 'Printing3DController@index', true);
-$router->post('/impressao-3d/fornecedores', 'Printing3DController@supplier', true);
+$router->post('/impressao-3d/fornecedores', 'SupplierController@store', true);
 $router->post('/impressao-3d/filamentos', 'Printing3DController@filament', true);
 $router->post('/impressao-3d/pecas', 'Printing3DController@product', true);
 $router->post('/impressao-3d/categorias', 'Printing3DController@category', true);
