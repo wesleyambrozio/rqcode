@@ -42,7 +42,10 @@ final class NfeXmlService
         $recipient=$this->first($inf, './*[local-name()="dest"]');
         $recipientDocument=preg_replace('/\D/','',$this->value($recipient,'CNPJ') ?: $this->value($recipient,'CPF'));
         $companyDocument=preg_replace('/\D/','',(string)env('COMPANY_DOCUMENT',''));
-        if($companyDocument!==''&&$recipientDocument!==$companyDocument)throw new RuntimeException('A NF-e nao foi emitida para a empresa configurada.');
+        $personalDocuments=array_values(array_filter(array_map(fn($document)=>preg_replace('/\D/','',trim($document)),explode(',',(string)env('COMPANY_PERSONAL_DOCUMENTS','')))));
+        $allowedDocuments=array_values(array_filter(array_merge([$companyDocument],$personalDocuments)));
+        if($allowedDocuments&&!in_array($recipientDocument,$allowedDocuments,true))throw new RuntimeException('A NF-e nao foi emitida para a empresa ou titular configurado.');
+        $recipientType=in_array($recipientDocument,$personalDocuments,true)?'owner_personal':'company';
 
         $items = [];
         foreach ($inf->xpath('./*[local-name()="det"]') ?: [] as $det) {
@@ -67,6 +70,7 @@ final class NfeXmlService
             'access_key'=>$key, 'model'=>$this->value($ide,'mod'), 'series'=>$this->value($ide,'serie'),
             'number'=>$this->value($ide,'nNF'), 'issued_at'=>date('Y-m-d H:i:s',$issuedTimestamp),
             'recipient_document'=>$recipientDocument,
+            'expense_origin'=>$recipientType,
             'issuer_name'=>$this->value($issuer,'xNome'),
             'issuer_document'=>$issuerDocument,
             'total_products'=>(float)$this->value($total,'vProd'), 'total_freight'=>(float)$this->value($total,'vFrete'),

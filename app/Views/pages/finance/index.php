@@ -82,13 +82,13 @@ $frequencyLabels = ['weekly' => 'Semanal', 'monthly' => 'Mensal', 'quarterly' =>
 
 <section class="card finance-table-card">
   <div class="card-heading"><div><span class="section-kicker">EXTRATO</span><h2>Movimentações</h2></div><span class="heading-icon">≡</span></div>
-  <div class="table-wrap"><table><tr><th>Vence</th><th>Descrição</th><th>Plano de contas</th><th>Forma</th><th>Natureza</th><th>Parcela</th><th>Valor</th><th>Status</th><th>Ações</th></tr>
+  <div class="table-wrap"><table><tr><th>Vence</th><th>Descrição</th><th>Origem</th><th>Plano de contas</th><th>Forma</th><th>Natureza</th><th>Parcela</th><th>Valor</th><th>Status</th><th>Ações</th></tr>
     <?php foreach ($entries as $entry): ?>
       <tr>
-        <td><?= e($entry['due_date']) ?></td><td><strong><?= e($entry['description']) ?></strong></td><td><?= e(($entry['account_code'] ? $entry['account_code'].' · ' : '').($entry['account_name'] ?: $entry['category'])) ?></td><td><?= e($entry['payment_method_name'] ?: $entry['payment_method'] ?: '—') ?></td><td><?= e($directionLabels[$entry['direction']] ?? $entry['direction']) ?></td><td><?= $entry['total_installments'] ? (int)$entry['installment_number'].'/'.(int)$entry['total_installments'] : '—' ?></td><td><?= money($entry['amount']) ?></td><td><span class="badge <?= $entry['status'] === 'paid' ? 'success' : ($entry['status'] === 'cancelled' ? 'danger' : 'warning') ?>"><?= e($statusLabels[$entry['status']] ?? $entry['status']) ?></span></td>
+        <td><?= e($entry['due_date']) ?></td><td><strong><?= e($entry['description']) ?></strong></td><td><span class="badge <?=($entry['expense_origin']??'company')==='owner_personal'?'warning':'success'?>"><?=($entry['expense_origin']??'company')==='owner_personal'?'Titular':'Empresa'?></span></td><td><?= e(($entry['account_code'] ? $entry['account_code'].' · ' : '').($entry['account_name'] ?: $entry['category'])) ?></td><td><?= e($entry['payment_method_name'] ?: $entry['payment_method'] ?: '—') ?></td><td><?= e($directionLabels[$entry['direction']] ?? $entry['direction']) ?></td><td><?= $entry['total_installments'] ? (int)$entry['installment_number'].'/'.(int)$entry['total_installments'] : '—' ?></td><td><?= money($entry['amount']) ?></td><td><span class="badge <?= $entry['status'] === 'paid' ? 'success' : ($entry['status'] === 'cancelled' ? 'danger' : 'warning') ?>"><?= e($statusLabels[$entry['status']] ?? $entry['status']) ?></span></td>
         <td><?php if ($entry['status'] === 'pending'): ?><form class="inline" method="post" action="/financeiro/liquidar"><?= csrf_field() ?><input type="hidden" name="id" value="<?= e($entry['id']) ?>"><button class="small-button" type="submit">Liquidar</button></form><?php endif; ?></td>
       </tr>
     <?php endforeach; ?>
-    <?php if (!$entries): ?><tr><td colspan="9" class="empty-state">Nenhuma movimentação cadastrada.</td></tr><?php endif; ?>
+    <?php if (!$entries): ?><tr><td colspan="10" class="empty-state">Nenhuma movimentação cadastrada.</td></tr><?php endif; ?>
   </table></div>
 </section>
