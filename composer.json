@@ -24,5 +24,6 @@
     "alerts:dry-run": "php bin/due-alerts.php --dry-run",
     "sync:fleetway": "php bin/sync-fleetway.php",
     "sync:projects": "php bin/sync-projects.php"
+    ,"knowledge:import": "php bin/import-knowledge.php"
   }
 }

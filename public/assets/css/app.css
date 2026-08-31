@@ -149,6 +149,30 @@ button:hover, .btn:hover { filter: brightness(1.06); }
 .actions { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; }
 .alert { margin-bottom: 16px; padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--warning) 24%, transparent); border-radius: 10px; color: var(--warning); background: color-mix(in srgb, var(--warning) 8%, var(--panel)); }
 .alert-success { color: var(--success); border-color: color-mix(in srgb, var(--success) 24%, transparent); background: color-mix(in srgb, var(--success) 8%, var(--panel)); }
+.support-form, .knowledge-form-card form { padding: 20px; }
+.support-board { display: grid; gap: 16px; margin-top: 16px; }
+.ticket-card { display: grid; gap: 13px; }
+.ticket-head, .ticket-meta, .filter-row, .status-form, .ticket-reply, .knowledge-row { display: flex; align-items: center; gap: 10px; }
+.ticket-head { justify-content: space-between; }
+.ticket-head h2, .knowledge-row h3 { margin: 4px 0; font-size: 16px; }
+.ticket-meta { flex-wrap: wrap; padding: 10px 12px; border-radius: 10px; background: var(--panel-soft); color: var(--muted); font-size: 10px; }
+.ticket-message { padding: 12px; border-left: 3px solid var(--primary); border-radius: 8px; background: var(--panel-soft); }
+.ticket-message.internal { border-left-color: var(--warning); }
+.ticket-message p { margin: 5px 0 0; font-size: 12px; }
+.ticket-reply textarea { min-height: 58px; }
+.ticket-reply .checkbox-label { flex: 0 0 auto; }
+.compact-form { grid-template-columns: repeat(3, minmax(0, 1fr)) auto; }
+.text-danger { color: var(--danger); font-weight: 700; }
+.knowledge-overview { margin-bottom: 16px; }
+.knowledge-form-card { padding: 0; overflow: hidden; }
+.knowledge-content { min-height: 260px; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+.knowledge-list, .users-list { margin-top: 16px; padding: 0; overflow: hidden; }
+.knowledge-row { justify-content: space-between; padding: 17px 21px; border-bottom: 1px solid var(--line-soft); }
+.knowledge-row > div { min-width: 0; }
+.knowledge-row p { margin: 5px 0; }
+.knowledge-row small { color: var(--muted); }
+.filter-row select, .status-form select { min-width: 125px; }
+.status-form { flex-wrap: nowrap; }
 .finance-entry-card, .finance-config-grid, .finance-table-card { margin-top: 16px; }
 .finance-entry-card { padding: 0; overflow: hidden; }
 .finance-form { padding: 20px; }
@@ -218,6 +242,10 @@ button:hover, .btn:hover { filter: brightness(1.06); }
   .module-actions { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .topbar { min-height: 105px; }
   .topbar .muted, .live-pill { display: none; }
+  .compact-form { grid-template-columns: 1fr; }
+  .ticket-reply, .knowledge-row, .filter-row { align-items: stretch; flex-direction: column; }
+  .status-form { flex-wrap: wrap; }
+  .filter-row select, .status-form select { min-width: 0; }
 }
 @media (max-width: 620px) {
   .main { padding-inline: 14px; }

@@ -32,6 +32,16 @@ $router->post('/financeiro/formas-pagamento', 'FinanceController@storePaymentMet
 $router->post('/financeiro/liquidar', 'FinanceController@settle', true);
 $router->get('/suporte', 'SupportController@index', true);
 $router->post('/suporte', 'SupportController@store', true);
+$router->post('/suporte/atualizar', 'SupportController@update', true);
+$router->post('/suporte/mensagem', 'SupportController@message', true);
+$router->post('/suporte/filas', 'SupportController@queue', true);
+$router->post('/suporte/ia', 'SupportController@aiConfig', true);
+$router->get('/conhecimento', 'KnowledgeController@index', true);
+$router->post('/conhecimento', 'KnowledgeController@store', true);
+$router->post('/conhecimento/atualizar', 'KnowledgeController@update', true);
+$router->get('/usuarios-sistemas', 'SystemUserController@index', true);
+$router->post('/usuarios-sistemas', 'SystemUserController@store', true);
+$router->post('/usuarios-sistemas/atualizar', 'SystemUserController@update', true);
 $router->get('/integracoes', 'IntegrationController@index', true);
 $router->post('/integracoes', 'IntegrationController@store', true);
 $router->get('/relatorios', 'ReportController@index', true);

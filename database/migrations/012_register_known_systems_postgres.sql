@@ -1,0 +1,3 @@
+insert into saas_systems(name,slug,database_type,active) values ('Fleetway','fleetway','mariadb',true),('Checklist','checklist','mariadb',true),('Confeitaria','confeitaria','mariadb',true),('EVC Insight','evc-insight','mariadb',true),('Venda Hoje','Venda Hoje','mariadb',true) on conflict(slug) do nothing;
+insert into support_queues(system_id,name,slug,category) select id,'Atendimento geral','geral','general' from saas_systems on conflict(system_id,slug) do nothing;
+insert into ai_chat_configs(system_id,provider,active) select id,'disabled',false from saas_systems on conflict(system_id) do nothing;

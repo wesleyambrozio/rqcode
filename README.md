@@ -9,6 +9,8 @@ Central administrativa para acompanhar contas, usuarios, pagamentos, vendas, com
 - Registro de comissoes recorrentes ou avulsas.
 - Financeiro com contas a pagar/receber, vencimentos, liquidacao e status.
 - Central de suporte unificada para visualizar chamados por sistema.
+- Base de conhecimento RAG curada por sistema, público, idioma, versão e estado editorial.
+- Diretório central de usuários dos produtos e tickets com SLA, responsável, respostas e notas internas.
 - SQL inicial para MariaDB/MySQL e Supabase/Postgres.
 - Comando CLI para disparar aviso de vencimentos por e-mail.
 
@@ -75,6 +77,12 @@ Agendamento sugerido para avisos de vencimento:
 ```
 
 ## Proximas integracoes recomendadas
+
+Importe os documentos versionados do Checklist e BIELFRA para a central com:
+
+```bash
+composer knowledge:import
+```
 
 - Sincronizar usuarios/contas dos SaaS por webhook ou job agendado.
 - Webhooks de pagamento para conciliacao automatica.
