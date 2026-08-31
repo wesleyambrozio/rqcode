@@ -14,6 +14,7 @@ $navItems = [
   '/contabilidade' => ['Contabilidade', 'DOC'],
   '/impressao-3d' => ['Producao 3D', '3D'],
   '/configuracoes' => ['Configurações', '⚙'],
+  '/usuarios-administrativos' => ['Usuarios administrativos', 'ADM'],
 ];
 $isAccountant = (\App\Core\Auth::user()['role'] ?? '') === 'accountant';
 if ($isAccountant) $navItems = ['/contabilidade' => ['Portal contabil', 'DOC']];
