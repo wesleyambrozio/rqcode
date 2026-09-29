@@ -28,6 +28,7 @@ if ($isAccountant) $navItems = ['/contabilidade' => ['Portal contabil', 'DOC']];
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
   <title><?= e($title ?? config('app.name')) ?></title>
+  <link rel="icon" type="image/png" href="/assets/images/rqcode/favicon-rqcode.png">
   <script>document.documentElement.dataset.theme=localStorage.getItem('rqcode-theme')||((matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light');</script>
   <link rel="stylesheet" href="/assets/css/app.css">
 </head>
