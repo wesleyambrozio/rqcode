@@ -35,8 +35,7 @@ if ($isAccountant) $navItems = ['/contabilidade' => ['Portal contabil', 'DOC']];
   <div class="app-shell">
     <aside class="sidebar" id="app-sidebar">
       <a class="brand" href="/dashboard" aria-label="RQCode Dashboard">
-        <span class="brand-mark">RQ</span>
-        <span><strong>RQCODE</strong><small>COMMAND CENTER</small></span>
+        <img src="/assets/images/rqcode/logo-principal-escuro.png" alt="RQCode">
       </a>
 
       <div class="admin-profile">
