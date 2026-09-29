@@ -3,7 +3,7 @@
 <header class="site-header">
   <div class="site-header-inner">
     <a class="site-brand" href="/" aria-label="RQCode">
-      <img src="/assets/images/rqcode/logo-principal-escuro.png" alt="RQCode Sistemas e Servicos">
+      <img src="/assets/images/sistemas/imageSiteRqcode.png" alt="Dashboard RQCode">
     </a>
     <nav class="site-nav" aria-label="Navegacao principal">
       <a href="#solucoes">Solucoes</a>
