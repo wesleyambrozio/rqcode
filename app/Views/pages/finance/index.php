@@ -3,6 +3,7 @@ $directionLabels = ['receivable' => 'Receber', 'payable' => 'Pagar'];
 $statusLabels = ['pending' => 'Pendente', 'paid' => 'Liquidado', 'cancelled' => 'Cancelado'];
 $frequencyLabels = ['weekly' => 'Semanal', 'monthly' => 'Mensal', 'quarterly' => 'Trimestral', 'yearly' => 'Anual'];
 ?>
+<p><a href="/financeiro/asaas">Recebimentos e configuração Asaas</a></p>
 
 <?php if (!empty($_SESSION['flash'])): ?><div class="alert"><?= e($_SESSION['flash']); unset($_SESSION['flash']); ?></div><?php endif; ?>
 <?php if (!empty($_SESSION['flash_success'])): ?><div class="alert alert-success"><?= e($_SESSION['flash_success']); unset($_SESSION['flash_success']); ?></div><?php endif; ?>

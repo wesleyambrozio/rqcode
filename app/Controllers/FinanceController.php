@@ -102,6 +102,19 @@ final class FinanceController extends Controller
 
     public function settle(): void
     {
+        // Gateway-linked receivables must be settled by authoritative reconciliation.
+        $db = Database::connection();
+        $hasAsaas = $db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql'
+            ? (bool)$db->query("select to_regclass('public.asaas_charges')")->fetchColumn()
+            : (bool)$db->query("select count(*) from information_schema.tables where table_schema=database() and table_name='asaas_charges'")->fetchColumn();
+        if ($hasAsaas) {
+            $charge = $db->prepare("select id from asaas_charges where entry_id=? and environment='production'");
+            $charge->execute([(int)$this->input('id')]);
+            if ($charge->fetchColumn()) {
+                $_SESSION['flash'] = 'Este lançamento possui cobrança Asaas. Use a conciliação para confirmar o recebimento.';
+                redirect('/financeiro');
+            }
+        }
         $statement = Database::connection()->prepare("update financial_entries set status = 'paid', paid_at = current_date where id = :id");
         $statement->execute(['id' => (int) $this->input('id')]);
         redirect('/financeiro');

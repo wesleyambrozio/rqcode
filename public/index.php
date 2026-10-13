@@ -7,6 +7,12 @@ use App\Core\Router;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
+if (parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) === '/api/asaas/webhook') {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') { http_response_code(405); exit; }
+    (new \App\Controllers\AsaasController())->webhook();
+    exit;
+}
+
 session_name('central_saas_session');
 session_start();
 
@@ -26,6 +32,9 @@ $router->post('/sistemas', 'SystemController@store', true);
 $router->get('/vendas', 'SaleController@index', true);
 $router->post('/vendas', 'SaleController@store', true);
 $router->get('/financeiro', 'FinanceController@index', true);
+$router->get('/financeiro/asaas', 'AsaasController@index', true);
+$router->post('/financeiro/asaas/criar', 'AsaasController@create', true);
+$router->post('/financeiro/asaas/conciliar', 'AsaasController@reconcile', true);
 $router->post('/financeiro', 'FinanceController@store', true);
 $router->post('/financeiro/plano-contas', 'FinanceController@storeAccount', true);
 $router->post('/financeiro/formas-pagamento', 'FinanceController@storePaymentMethod', true);
