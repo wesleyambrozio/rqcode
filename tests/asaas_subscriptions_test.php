@@ -78,4 +78,7 @@ ensure($end->invoke($service,'2026-01-31')==='2026-02-28'&&$end->invoke($service
 $secret=str_repeat('s',64);$bridge=new BillingBridge($db,['checklist'=>$secret],$service);$raw=json_encode(['action'=>'billing.state','tenant_id'=>$tenant]);$timestamp=(string)time();$nonce=str_repeat('n',32);$headers=['system'=>'checklist','timestamp'=>$timestamp,'nonce'=>$nonce,'signature'=>hash_hmac('sha256',$timestamp."\n".$nonce."\n".hash('sha256',$raw),$secret)];
 ensure($bridge->handle($raw,$headers)['environment']==='production','Product requests authenticated with HMAC');
 deny(fn()=>$bridge->handle($raw,$headers),'Replay rejected');$headers['nonce']=str_repeat('a',32);deny(fn()=>$bridge->handle($raw,$headers),'Forged signature rejected');
+$insert=$db->prepare("insert into support_api_nonces(system_id,nonce,created_at) values(1,?,datetime('now','-2 hours'))");for($i=0;$i<245;$i++)$insert->execute(['old-'.$i]);
+$previousTimezone=date_default_timezone_get();date_default_timezone_set('America/Sao_Paulo');$headers['nonce']=str_repeat('z',32);$headers['signature']=hash_hmac('sha256',$timestamp."\n".$headers['nonce']."\n".hash('sha256',$raw),$secret);
+ensure($bridge->handle($raw,$headers)['environment']==='production','Old nonces do not exhaust rate limit when PHP and database timezones differ');date_default_timezone_set($previousTimezone);
 echo "TOTAL $count subscription checks passed\n";
