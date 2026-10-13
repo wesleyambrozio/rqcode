@@ -7,6 +7,13 @@ use App\Core\Router;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
+// Product administration and billing share the authenticated product identity.
+if (parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) === '/api/support/v1') {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') { http_response_code(405); exit; }
+    (new \App\Controllers\SupportApiController())->dispatch();
+    exit;
+}
+
 if (parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) === '/api/billing/v1') {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') { http_response_code(405); exit; }
     (new \App\Controllers\BillingApiController())->dispatch();

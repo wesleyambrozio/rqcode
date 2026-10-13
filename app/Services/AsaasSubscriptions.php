@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use DateTimeImmutable;
+use DateTimeZone;
 use PDO;
 use RuntimeException;
 use Throwable;
@@ -12,6 +13,7 @@ final class AsaasSubscriptions
     public const TERMS_VERSION='2026-10-13.billing.1';
     public const COMMERCIAL_SLUGS=['road-pro','starter','workshop-essential','workshop-professional','professional','fleet','enterprise','network-enterprise'];
     public function __construct(private PDO $db,private AsaasClient $api,private string $documentKey) {}
+    private function today():string {return (new DateTimeImmutable('now',new DateTimeZone('America/Sao_Paulo')))->format('Y-m-d');}
     private function lock():string {return $this->db->getAttribute(PDO::ATTR_DRIVER_NAME)==='sqlite'?'':' for update';}
     private function row(string $sql,array $args=[]):?array {$q=$this->db->prepare($sql);$q->execute($args);return $q->fetch(PDO::FETCH_ASSOC)?:null;}
     private function rows(string $sql,array $args=[]):array {$q=$this->db->prepare($sql);$q->execute($args);return $q->fetchAll(PDO::FETCH_ASSOC);}
@@ -34,7 +36,7 @@ final class AsaasSubscriptions
         $customer=$this->row('select document_mask from billing_customers where system_id=? and tenant_external_id=? and environment=?',[$system,$tenant,$this->api->environment()]);
         return ['environment'=>$this->api->environment(),'terms_version'=>self::TERMS_VERSION,'catalog'=>$this->catalog($system),
             'account'=>['external_id'=>$tenant,'plan_external_id'=>$account['plan_external_id'],'active'=>(bool)$account['active'],'revision'=>(int)$account['revision']],
-            'document_mask'=>$customer['document_mask']??null,'can_subscribe'=>!$s||($s['gateway_status']==='CANCELLED'&&(!$s['service_until']||$s['service_until']<=date('Y-m-d'))),'can_recover'=>$s&&$s['gateway_status']==='CREATING',
+            'document_mask'=>$customer['document_mask']??null,'can_subscribe'=>!$s||($s['gateway_status']==='CANCELLED'&&(!$s['service_until']||$s['service_until']<=$this->today())),'can_recover'=>$s&&$s['gateway_status']==='CREATING',
             'subscription'=>$s?array_intersect_key($s,array_flip(['id','plan_external_id','plan_name','amount','billing_type','gateway_status','cancel_requested','cancelled_at','service_until','first_due_date'])):null,
             'payments'=>$s?$this->rows('select payment_id,status,amount,due_date,paid_at,invoice_url from billing_payments where subscription_local_id=? order by due_date desc,id desc limit 12',[$s['id']]):[]];
     }
@@ -56,12 +58,12 @@ final class AsaasSubscriptions
             $account=$this->account($system,$tenant,true);
             if(!$account['active'])throw new RuntimeException('Conta suspensa. Entre em contato com o suporte.',403);
             $s=$this->latest($system,$tenant);
-            if($s&&($s['gateway_status']!=='CANCELLED'||($s['service_until']&&$s['service_until']>date('Y-m-d')))) {
+            if($s&&($s['gateway_status']!=='CANCELLED'||($s['service_until']&&$s['service_until']>$this->today()))) {
                 if($s['plan_external_id']!==$plan['external_id'])throw new RuntimeException('Já existe uma assinatura ou tentativa em andamento. Cancele antes de contratar outro plano.',409);
                 if($s['gateway_status']==='CANCELLED')throw new RuntimeException('O período contratado ainda está vigente. Aguarde o término antes de contratar novamente.',409);
                 $freshSubscription=false;
             }else{
-                $this->run('insert into billing_subscriptions(system_id,tenant_external_id,environment,plan_external_id,plan_name,amount,billing_type,external_reference,first_due_date,accepted_by,terms_version) values(?,?,?,?,?,?,?,?,?,?,?)',[$system,$tenant,$env,$plan['external_id'],$plan['name'],$plan['price'],$data['billing_type'],'rqsub-'.bin2hex(random_bytes(16)),date('Y-m-d'),$data['user_id'],self::TERMS_VERSION]);
+                $this->run('insert into billing_subscriptions(system_id,tenant_external_id,environment,plan_external_id,plan_name,amount,billing_type,external_reference,first_due_date,accepted_by,terms_version) values(?,?,?,?,?,?,?,?,?,?,?)',[$system,$tenant,$env,$plan['external_id'],$plan['name'],$plan['price'],$data['billing_type'],'rqsub-'.bin2hex(random_bytes(16)),$this->today(),$data['user_id'],self::TERMS_VERSION]);
                 $s=$this->latest($system,$tenant);$freshSubscription=true;
             }
             $customer=$this->row('select * from billing_customers where system_id=? and tenant_external_id=? and environment=?',[$system,$tenant,$env]);
@@ -141,7 +143,7 @@ final class AsaasSubscriptions
     private function entitlement(array $s):void {
         $last=$this->row("select due_date from billing_payments where subscription_local_id=? and (status in ('RECEIVED','RECEIVED_IN_CASH') or (status='CONFIRMED' and billing_type='CREDIT_CARD')) order by due_date desc limit 1",[$s['id']]);
         $until=$last?$this->periodEnd($last['due_date']):null;
-        $active=$until&&$until>date('Y-m-d');
+        $active=$until&&$until>$this->today();
         $status=$s['cancelled_at']?'CANCELLED':($active?'ACTIVE':($last?'PAST_DUE':($s['subscription_id']?'PENDING':'CREATING')));
         $this->run('update billing_subscriptions set service_until=?,gateway_status=?,updated_at=current_timestamp where id=?',[$until,$status,$s['id']]);
         if($s['environment']!=='production')return;

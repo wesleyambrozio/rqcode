@@ -19,9 +19,12 @@ final class BillingBridge
         try{
             $this->db->query('select id from saas_systems where id='.$system.($this->db->getAttribute(PDO::ATTR_DRIVER_NAME)==='sqlite'?'':' for update'))->fetch();
             $q=$this->db->prepare('select count(*) from support_api_nonces where system_id=? and nonce=?');$q->execute([$system,$nonce]);if($q->fetchColumn())throw new RuntimeException('Replay rejected',409);
-            $q=$this->db->prepare('select count(*) from support_api_nonces where system_id=? and created_at>=?');$q->execute([$system,date('Y-m-d H:i:s',time()-60)]);if((int)$q->fetchColumn()>=240)throw new RuntimeException('Rate limit',429);
+            $driver=$this->db->getAttribute(PDO::ATTR_DRIVER_NAME);
+            $minute=match($driver){'pgsql'=>"current_timestamp - interval '60 seconds'",'sqlite'=>"datetime('now','-60 seconds')",default=>'current_timestamp - interval 60 second'};
+            $day=match($driver){'pgsql'=>"current_timestamp - interval '1 day'",'sqlite'=>"datetime('now','-1 day')",default=>'current_timestamp - interval 1 day'};
+            $q=$this->db->prepare('select count(*) from support_api_nonces where system_id=? and created_at>='.$minute);$q->execute([$system]);if((int)$q->fetchColumn()>=240)throw new RuntimeException('Rate limit',429);
             $this->db->prepare('insert into support_api_nonces(system_id,nonce) values(?,?)')->execute([$system,$nonce]);
-            $this->db->prepare('delete from support_api_nonces where created_at<?')->execute([date('Y-m-d H:i:s',time()-86400)]);$this->db->commit();
+            $this->db->exec('delete from support_api_nonces where created_at<'.$day);$this->db->commit();
         }catch(Throwable $e){if($this->db->inTransaction())$this->db->rollBack();throw $e;}
         // Business reservations commit independently before external operations.
         $tenant=(string)($data['tenant_id']??'');
