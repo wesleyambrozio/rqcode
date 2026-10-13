@@ -17,13 +17,15 @@ final class AsaasController extends Controller
         $configured = (string)env('ASAAS_API_KEY','') !== '';
         $webhookConfigured = strlen((string)env('ASAAS_WEBHOOK_TOKEN','')) >= 32;
         $webhookUrl = rtrim((string)config('app.url'),'/') . '/api/asaas/webhook';
-        $charges = []; $entries = []; $migrationReady = false;
+        $charges = []; $entries = []; $subscriptions = []; $migrationReady = false;
         try {
             $q = Database::connection()->prepare('select c.*, f.description from asaas_charges c join financial_entries f on f.id=c.entry_id where c.environment=? order by c.id desc limit 100');
             $q->execute([$environment]); $charges = $q->fetchAll(); $migrationReady = true;
             $entries = Database::connection()->query("select id,description,amount,due_date from financial_entries where direction='receivable' and status='pending' order by due_date limit 200")->fetchAll();
+            $q=Database::connection()->prepare('select b.*,a.name account_name from billing_subscriptions b left join product_accounts a on a.system_id=b.system_id and a.external_id=b.tenant_external_id where b.environment=? order by b.id desc limit 100');
+            $q->execute([$environment]);$subscriptions=$q->fetchAll();
         } catch (Throwable) { $_SESSION['flash'] = 'Execute php bin/migrate.php para preparar as tabelas Asaas.'; }
-        $this->view('finance/asaas',compact('environment','configured','webhookConfigured','webhookUrl','charges','entries','migrationReady') + ['title'=>'Recebimentos Asaas']);
+        $this->view('finance/asaas',compact('environment','configured','webhookConfigured','webhookUrl','charges','entries','subscriptions','migrationReady') + ['title'=>'Assinaturas e recebimentos Asaas']);
     }
 
     public function create(): void
@@ -51,6 +53,12 @@ final class AsaasController extends Controller
         header('Content-Type: application/json');
         $token = (string)($_SERVER['HTTP_ASAAS_ACCESS_TOKEN'] ?? '');
         $expected = (string)env('ASAAS_WEBHOOK_TOKEN','');
+        $api = AsaasClient::configured();
+        $sandboxToken = (string)env('ASAAS_SANDBOX_WEBHOOK_TOKEN','');
+        if (strlen($sandboxToken)>=32 && hash_equals($sandboxToken,$token)) {
+            $expected=$sandboxToken;
+            $api=new AsaasClient('sandbox',(string)env('ASAAS_SANDBOX_API_KEY',''));
+        }
         if (strlen($expected)<32 || !hash_equals($expected,$token)) { http_response_code(401); echo '{"ok":false}'; return; }
         // Shared fixed-window limiter; no session or database work for unauthorized requests.
         $directory = dirname(__DIR__,2).'/storage';
@@ -64,7 +72,15 @@ final class AsaasController extends Controller
         if ($count>120) { http_response_code(429); echo '{"ok":false}'; return; }
         $raw = file_get_contents('php://input',false,null,0,262145);
         if ($raw === false || strlen($raw)>262144) { http_response_code(413); echo '{"ok":false}'; return; }
-        try { $this->service()->webhook($raw,$token,$expected); echo '{"ok":true}'; }
+        try {
+            $event=json_decode($raw,true,32,JSON_THROW_ON_ERROR);
+            if(!is_array($event)||!is_string($event['id']??null)||$event['id']===''||strlen($event['id'])>190||!is_string($event['event']??null)||!preg_match('/^(PAYMENT|SUBSCRIPTION)_[A-Z_]+$/D',$event['event']))throw new \RuntimeException('Evento inválido.',400);
+            $db=Database::connection();
+            $billing=new \App\Services\AsaasSubscriptions($db,$api,(string)env('BILLING_DOCUMENT_KEY',''));
+            if(!$billing->webhook($event)&&str_starts_with($event['event'],'PAYMENT_'))(new AsaasPayments($db,$api))->webhook($raw,$token,$expected);
+            echo '{"ok":true}';
+        }
+        catch (\JsonException) { http_response_code(400); echo '{"ok":false}'; }
         catch (Throwable $e) { http_response_code(in_array($e->getCode(),[400,401,409],true)?$e->getCode():503); echo '{"ok":false}'; }
     }
 }

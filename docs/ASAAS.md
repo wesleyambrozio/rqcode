@@ -19,7 +19,7 @@ Implementado na Central em `/financeiro/asaas`: cobranças avulsas de lançament
 - Webhooks conhecidos consultam o estado atual pela API sob bloqueio da cobrança, evitando regressão por evento atrasado. Falhas retornam 503 para reentrega; eventos duplicados são ignorados. Eventos de outros produtos são ignorados sem afetar lançamentos.
 - Apenas `RECEIVED`/`RECEIVED_IN_CASH` liquidam produção; `CONFIRMED` permanece pendente porque pode ser provisório. Estorno integral cancela e limpa a data; estorno parcial exige análise manual. Valores brutos são conciliados; taxas e saldo líquido não são lançados automaticamente.
 - Eventos armazenam identificador, tipo, cobrança e data, sem payload pessoal completo. A cobrança registra o administrador emissor. Histórico está isolado por ambiente.
-- Assinaturas recorrentes, cadastro automático de clientes, liberação/bloqueio de planos nos produtos e comissões automáticas ainda precisam de implementação específica. Recorrências financeiras existentes não geram assinaturas Asaas.
+- Assinaturas recorrentes, cadastro de pagadores e ativação dos planos no Checklist estão descritos em [ASAAS_ASSINATURAS.md](ASAAS_ASSINATURAS.md). Recorrências financeiras avulsas existentes não geram assinaturas Asaas. Outros produtos e comissões automáticas exigem integração específica.
 - Para conciliar uma cobrança, use **Conciliar**. Cobranças listadas têm limite de 100 registros recentes; lançamentos selecionáveis, 200 pendentes.
 - Reversão de implantação: desabilite o webhook no Asaas e remova o acesso às rotas; preserve tabelas, reservas e referências para auditoria. Não exclua cobranças remotas automaticamente.
 

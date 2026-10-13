@@ -9,7 +9,15 @@
 </section>
 <?php if ($migrationReady): ?>
 <section class="card">
-  <h2>Emitir cobrança</h2>
+  <h2>Assinaturas mensais</h2>
+  <p>O cliente contrata e cancela a renovação em Plano e assinatura no Checklist. O preço contratado fica registrado e não acompanha automaticamente alterações no catálogo.</p>
+  <div class="table-wrap"><table><tr><th>Conta</th><th>Plano</th><th>Valor mensal</th><th>Situação</th><th>Período pago até</th></tr>
+  <?php foreach($subscriptions as $subscription): ?><tr><td><?= e($subscription['account_name'] ?: $subscription['tenant_external_id']) ?></td><td><?= e($subscription['plan_name']) ?></td><td><?= money($subscription['amount']) ?></td><td><?= e($subscription['gateway_status']) ?></td><td><?= e($subscription['service_until'] ?: 'Aguardando pagamento') ?></td></tr><?php endforeach; ?>
+  <?php if(!$subscriptions): ?><tr><td colspan="5">Nenhuma assinatura neste ambiente.</td></tr><?php endif; ?>
+  </table></div>
+</section>
+<section class="card">
+  <h2>Emitir cobrança avulsa</h2>
   <form method="post" action="/financeiro/asaas/criar" class="stack-form">
     <?= csrf_field() ?>
     <label>Lançamento a receber <select name="entry_id" required><option value="">Selecione</option><?php foreach($entries as $entry): ?><option value="<?= (int)$entry['id'] ?>"><?= e($entry['description'].' · '.money($entry['amount']).' · '.$entry['due_date']) ?></option><?php endforeach; ?></select></label>

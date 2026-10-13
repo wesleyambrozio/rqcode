@@ -7,6 +7,12 @@ use App\Core\Router;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
+if (parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) === '/api/billing/v1') {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') { http_response_code(405); exit; }
+    (new \App\Controllers\BillingApiController())->dispatch();
+    exit;
+}
+
 if (parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) === '/api/asaas/webhook') {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') { http_response_code(405); exit; }
     (new \App\Controllers\AsaasController())->webhook();
@@ -33,6 +39,7 @@ $router->get('/vendas', 'SaleController@index', true);
 $router->post('/vendas', 'SaleController@store', true);
 $router->get('/financeiro', 'FinanceController@index', true);
 $router->get('/financeiro/asaas', 'AsaasController@index', true);
+$router->get('/financeiro/assinaturas', 'AsaasController@index', true);
 $router->post('/financeiro/asaas/criar', 'AsaasController@create', true);
 $router->post('/financeiro/asaas/conciliar', 'AsaasController@reconcile', true);
 $router->post('/financeiro', 'FinanceController@store', true);
