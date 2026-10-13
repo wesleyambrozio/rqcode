@@ -26,6 +26,7 @@ A assinatura mensal é o fluxo principal: o dono/administrador da conta acessa `
 2. Configurar `ASAAS_ENV`, `ASAAS_API_KEY`, `ASAAS_WEBHOOK_TOKEN`, `BILLING_DOCUMENT_KEY`. Para preservar homologação paralela, `ASAAS_SANDBOX_API_KEY` e `ASAAS_SANDBOX_WEBHOOK_TOKEN` ficam independentes.
 3. Webhook ativo em `https://rqcode.com.br/api/asaas/webhook`, eventos de cobrança e de assinatura disponíveis, envio sequencial. O receptor escolhe o ambiente pelo token; nunca pelo corpo do evento.
 4. Configurar `ZAP_TERMS_VERSION` e `ZAP_PRIVACY_VERSION` com a versão acima no Checklist e renovar caches de configuração e rotas.
+   Na VPS compartilhada, `RQCODE_CENTRAL_CONNECT_IP=127.0.0.1` evita depender de acesso ao próprio IP público. A URL continua HTTPS com domínio oficial, certificado e HMAC validados. O ajuste também é usado na integração administrativa e de suporte; não desabilita TLS nem modifica regras do Mailcow.
 5. Validar assinatura, recuperação após timeout, fatura, recebimento, estorno, cancelamento, bloqueio de outro tenant e limites após ativação. Não criar assinatura real para um usuário sem seu formulário preenchido e confirmação do valor.
 
 Testes: `php tests/asaas_subscriptions_test.php`, `php tests/asaas_payments_test.php` e `BillingFlowTest` no Checklist. Os testes automatizados usam dados fictícios e transporte simulado.
