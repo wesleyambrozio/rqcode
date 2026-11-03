@@ -11,9 +11,19 @@ final class SystemUserController extends Controller
     public function index(): void
     {
         $db = Database::connection();
-        $users = $db->query('select u.*, s.name system_name from system_users u join saas_systems s on s.id = u.system_id order by u.updated_at desc, u.created_at desc')->fetchAll();
+        $systemFilter = max(0, (int) ($_GET['system_id'] ?? 0));
+        $query = 'select u.*, s.name system_name from system_users u join saas_systems s on s.id = u.system_id';
+        $params = [];
+        if ($systemFilter > 0) {
+            $query .= ' where u.system_id = :system_id';
+            $params['system_id'] = $systemFilter;
+        }
+        $query .= ' order by s.name, u.last_seen_at desc, u.registered_at desc, u.created_at desc';
+        $statement = $db->prepare($query);
+        $statement->execute($params);
+        $users = $statement->fetchAll();
         $systems = $db->query('select id, name from saas_systems where active = 1 order by name')->fetchAll();
-        $this->view('system-users/index', compact('users', 'systems') + ['title' => 'Usuários dos sistemas']);
+        $this->view('system-users/index', compact('users', 'systems', 'systemFilter') + ['title' => 'Usuários dos sistemas']);
     }
 
     public function store(): void
