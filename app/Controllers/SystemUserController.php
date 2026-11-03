@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Core\Database;
 use App\Models\SystemUser;
+use App\Services\SystemUserDirectory;
 
 final class SystemUserController extends Controller
 {
@@ -12,18 +13,13 @@ final class SystemUserController extends Controller
     {
         $db = Database::connection();
         $systemFilter = max(0, (int) ($_GET['system_id'] ?? 0));
-        $query = 'select u.*, s.name system_name from system_users u join saas_systems s on s.id = u.system_id';
-        $params = [];
-        if ($systemFilter > 0) {
-            $query .= ' where u.system_id = :system_id';
-            $params['system_id'] = $systemFilter;
-        }
-        $query .= ' order by s.name, u.last_seen_at desc, u.registered_at desc, u.created_at desc';
-        $statement = $db->prepare($query);
-        $statement->execute($params);
-        $users = $statement->fetchAll();
+        [$sort, $direction] = SystemUserDirectory::selection($_GET['sort'] ?? null, $_GET['direction'] ?? null);
+        $users = SystemUserDirectory::users($db, $systemFilter, $sort, $direction);
+        $sorts = SystemUserDirectory::SORTS;
+        $lastSync = null;
+        foreach ($users as $user) if (($user['synced_at'] ?? '') > ($lastSync ?? '')) $lastSync = $user['synced_at'];
         $systems = $db->query('select id, name from saas_systems where active = 1 order by name')->fetchAll();
-        $this->view('system-users/index', compact('users', 'systems', 'systemFilter') + ['title' => 'Usuários dos sistemas']);
+        $this->view('system-users/index', compact('users', 'systems', 'systemFilter', 'sort', 'direction', 'sorts', 'lastSync') + ['title' => 'Usuários dos sistemas']);
     }
 
     public function store(): void
