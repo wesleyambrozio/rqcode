@@ -83,7 +83,8 @@ final class NfeXmlService
     {
         $text=mb_strtoupper($item['description'],'UTF-8');
         $material='Outro'; foreach(['PETG','PLA','ABS','TPU','ASA','NYLON','RESINA'] as $candidate) if(preg_match('/\b'.preg_quote($candidate,'/').'\b/u',$text)){$material=in_array($candidate,['NYLON','RESINA'],true)?ucfirst(strtolower($candidate)):$candidate;break;}
-        $color=null;foreach(['PRETO','BRANCO','AZUL','VERDE','VERMELHO','AMARELO','LARANJA','ROSA','ROXO','CINZA','MARROM','DOURADO','PRATA','TRANSPARENTE','NATURAL'] as $candidate)if(preg_match('/\b'.$candidate.'\b/u',$text)){$color=ucfirst(strtolower($candidate));break;}
+        $color=mb_substr(trim((string)($item['code']??'')),0,80)?:null;
+        if($color===null)foreach(['PRETO','BRANCO','AZUL','VERDE','VERMELHO','AMARELO','LARANJA','ROSA','ROXO','CINZA','MARROM','DOURADO','PRATA','TRANSPARENTE','NATURAL'] as $candidate)if(preg_match('/\b'.$candidate.'\b/u',$text)){$color=ucfirst(strtolower($candidate));break;}
         $unitWeight=1000.0;
         if(preg_match('/(\d+(?:[.,]\d+)?)\s*KG\b/u',$text,$m)) $unitWeight=(float)str_replace(',','.',$m[1])*1000;
         elseif(preg_match('/(\d+(?:[.,]\d+)?)\s*(?:G|GR)\b/u',$text,$m)) $unitWeight=(float)str_replace(',','.',$m[1]);

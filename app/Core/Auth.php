@@ -8,7 +8,8 @@ final class Auth
 {
     public static function attempt(string $email, string $password): bool
     {
-        $statement = Database::connection()->prepare('select * from admin_users where email = :email and active = 1 limit 1');
+        $email = mb_strtolower(trim($email));
+        $statement = Database::connection()->prepare('select * from admin_users where lower(trim(email)) = :email and active = 1 limit 1');
         $statement->execute(['email' => $email]);
         $user = $statement->fetch();
 
@@ -16,6 +17,7 @@ final class Auth
             return false;
         }
 
+        session_regenerate_id(true);
         $_SESSION['user'] = [
             'id' => $user['id'],
             'name' => $user['name'],

@@ -32,3 +32,11 @@
 ## Decisão de arquitetura
 
 O RQCODE deve ser o plano de controle: catálogo de sistemas, contas, planos, cobranças, suporte, usuários administrativos e métricas. O Fleetway continua responsável pelo domínio de frota. Evitar acesso direto do RQCODE às tabelas internas do Fleetway; usar API versionada e webhooks assinados.
+
+## Suporte BIELFRA (30/08/2026)
+
+- [x] Quatro documentos iniciais de suporte/RAG curados e importados no RQCode
+- [x] Limites do agente e procedimentos de acesso, financeiro e PWA documentados
+- [x] Estrutura central para tickets, SLAs e diretório de usuários
+- [ ] Publicar eventos de ticket e sincronização incremental de usuários/tenants
+- [ ] Encerrar os bloqueadores reais registrados em `docs/GATE6_RELEASE_CHECKLIST.md`

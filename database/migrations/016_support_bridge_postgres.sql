@@ -1,0 +1,13 @@
+alter table support_tickets add column tenant_external_id varchar(120) null;
+alter table support_tickets add column requester_external_id varchar(120) null;
+alter table support_tickets add column context_json text null;
+alter table support_tickets add column bridge_key varchar(64) null;
+alter table support_tickets add column first_responded_at timestamp null;
+create unique index support_bridge_key on support_tickets(system_id,bridge_key);
+create table support_api_receipts (system_id bigint not null, event_id varchar(80) not null, payload_hash char(64) not null, response_json text not null, created_at timestamp not null default current_timestamp, primary key(system_id,event_id));
+create table support_api_nonces (system_id bigint not null, nonce varchar(80) not null, created_at timestamp not null default current_timestamp, primary key(system_id,nonce));
+create index support_nonce_time on support_api_nonces(created_at);
+create table support_audit (id bigserial primary key, system_id bigint null, admin_user_id bigint null, action varchar(80) not null, entity_id varchar(120) null, created_at timestamp not null default current_timestamp);
+alter table knowledge_documents add column metadata_json text null;
+create table knowledge_document_versions (id bigserial primary key, document_id bigint not null, version integer not null, snapshot_json text not null, created_at timestamp not null default current_timestamp, unique(document_id,version));
+create table support_ticket_attachments (id bigserial primary key, ticket_id bigint not null references support_tickets(id) on delete cascade, mime varchar(40) not null, data text not null, created_at timestamp not null default current_timestamp);

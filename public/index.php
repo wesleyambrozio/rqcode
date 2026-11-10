@@ -7,6 +7,25 @@ use App\Core\Router;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
+if (parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) === '/api/billing/v1') {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') { http_response_code(405); exit; }
+    (new \App\Controllers\BillingApiController())->dispatch();
+    exit;
+}
+
+if (parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) === '/api/asaas/webhook') {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') { http_response_code(405); exit; }
+    (new \App\Controllers\AsaasController())->webhook();
+    exit;
+}
+
+// This exact route authenticates service requests with HMAC, independently of browser sessions.
+if (parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) === '/api/support/v1') {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') { http_response_code(405); exit; }
+    (new \App\Controllers\SupportApiController())->dispatch();
+    exit;
+}
+
 session_name('central_saas_session');
 session_start();
 
@@ -21,11 +40,20 @@ $router->post('/contato', 'PublicController@contact');
 $router->get('/dashboard', 'DashboardController@index', true);
 $router->get('/vendedores', 'VendorController@index', true);
 $router->post('/vendedores', 'VendorController@store', true);
+$router->get('/vendedores/carteira', 'VendorController@portfolio', true);
+$router->post('/vendedores/carteira', 'VendorController@reassign', true);
 $router->get('/sistemas', 'SystemController@index', true);
 $router->post('/sistemas', 'SystemController@store', true);
+$router->get('/administracao-produtos', 'ProductAdminController@index', true);
+$router->post('/administracao-produtos/plano', 'ProductAdminController@plan', true);
+$router->post('/administracao-produtos/conta', 'ProductAdminController@account', true);
 $router->get('/vendas', 'SaleController@index', true);
 $router->post('/vendas', 'SaleController@store', true);
 $router->get('/financeiro', 'FinanceController@index', true);
+$router->get('/financeiro/asaas', 'AsaasController@index', true);
+$router->get('/financeiro/assinaturas', 'AsaasController@index', true);
+$router->post('/financeiro/asaas/criar', 'AsaasController@create', true);
+$router->post('/financeiro/asaas/conciliar', 'AsaasController@reconcile', true);
 $router->post('/financeiro', 'FinanceController@store', true);
 $router->post('/financeiro/plano-contas', 'FinanceController@storeAccount', true);
 $router->post('/financeiro/formas-pagamento', 'FinanceController@storePaymentMethod', true);
@@ -37,6 +65,7 @@ $router->post('/suporte/mensagem', 'SupportController@message', true);
 $router->post('/suporte/filas', 'SupportController@queue', true);
 $router->post('/suporte/ia', 'SupportController@aiConfig', true);
 $router->get('/conhecimento', 'KnowledgeController@index', true);
+$router->get('/suporte/anexo', 'SupportController@attachment', true);
 $router->post('/conhecimento', 'KnowledgeController@store', true);
 $router->post('/conhecimento/atualizar', 'KnowledgeController@update', true);
 $router->get('/usuarios-sistemas', 'SystemUserController@index', true);
@@ -67,6 +96,7 @@ $router->get('/impressao-3d', 'Printing3DController@index', true);
 $router->post('/impressao-3d/fornecedores', 'SupplierController@store', true);
 $router->post('/impressao-3d/filamentos', 'Printing3DController@filament', true);
 $router->post('/impressao-3d/pecas', 'Printing3DController@product', true);
+$router->post('/impressao-3d/configuracoes-energia', 'Printing3DController@energySettings', true);
 $router->post('/impressao-3d/categorias', 'Printing3DController@category', true);
 $router->post('/impressao-3d/canais', 'Printing3DController@channel', true);
 $router->post('/impressao-3d/producao', 'Printing3DController@production', true);

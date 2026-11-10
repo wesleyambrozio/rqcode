@@ -4,6 +4,7 @@ $navItems = [
   '/dashboard' => ['Dashboard', '⌂'],
   '/vendedores' => ['Vendedores', '◎'],
   '/sistemas' => ['Sistemas e planos', '▦'],
+  '/administracao-produtos' => ['Administrar produtos', 'AP'],
   '/vendas' => ['Vendas', '↗'],
   '/financeiro' => ['Financeiro', '$'],
   '/fornecedores' => ['Fornecedores', 'F'],
@@ -28,6 +29,7 @@ if ($isAccountant) $navItems = ['/contabilidade' => ['Portal contabil', 'DOC']];
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
   <title><?= e($title ?? config('app.name')) ?></title>
+  <link rel="icon" type="image/png" href="/assets/images/rqcode/favicon-rqcode.png">
   <script>document.documentElement.dataset.theme=localStorage.getItem('rqcode-theme')||((matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light');</script>
   <link rel="stylesheet" href="/assets/css/app.css">
 </head>
@@ -35,8 +37,7 @@ if ($isAccountant) $navItems = ['/contabilidade' => ['Portal contabil', 'DOC']];
   <div class="app-shell">
     <aside class="sidebar" id="app-sidebar">
       <a class="brand" href="/dashboard" aria-label="RQCode Dashboard">
-        <span class="brand-mark">RQ</span>
-        <span><strong>RQCODE</strong><small>COMMAND CENTER</small></span>
+        <img src="/assets/images/rqcode/logo-principal-escuro.png" alt="RQCode">
       </a>
 
       <div class="admin-profile">

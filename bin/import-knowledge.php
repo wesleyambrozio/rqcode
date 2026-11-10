@@ -17,6 +17,11 @@ foreach ($roots as $systemSlug => $root) {
     $systemQuery->execute(['slug' => $systemSlug]);
     $systemId = (int) $systemQuery->fetchColumn();
     if (!$systemId || !is_dir($root)) continue;
+    if ($systemSlug === 'checklist') {
+        $curated=$db->prepare("select count(*) from knowledge_documents where system_id=? and metadata_json like '%checklist-catalog%'");
+        $curated->execute([$systemId]);
+        if ($curated->fetchColumn()) { echo "Checklist: use import-support-catalog.php; catálogo curado preservado.\n"; continue; }
+    }
     foreach (glob($root . '/*.md') ?: [] as $file) {
         $content = trim((string) file_get_contents($file));
         preg_match('/^#\s+(.+)$/m', $content, $titleMatch);

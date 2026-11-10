@@ -1,3 +1,4 @@
+<section class="card"><h2>Administração integrada</h2><p>Para planos e contas sincronizados com o ZVTech Checklist, use <a href="/administracao-produtos">Administrar produtos</a>. O cadastro abaixo atende produtos ainda não integrados.</p></section>
 <section class="grid cols-2">
   <div class="card">
     <h2>Novo sistema</h2>

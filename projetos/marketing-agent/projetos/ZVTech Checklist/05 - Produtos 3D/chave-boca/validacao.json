@@ -1,0 +1,11 @@
+{
+  "length_mm": 77.99972534179688,
+  "land_thickness_mm": 3.2,
+  "nonmanifold_edges": 0,
+  "body_volume_mm3": 6781.092438581339,
+  "channel_clearance_preserved": true,
+  "text_preserved_in_multimaterial": true,
+  "physical_chain_fit_tested": false,
+  "single_material_volume_mm3": 6804.243935269953,
+  "single_material_text_overlap_mm": 0.005
+}

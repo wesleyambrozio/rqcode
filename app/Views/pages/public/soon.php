@@ -3,7 +3,7 @@
 <header class="site-header">
   <div class="site-header-inner">
     <a class="site-brand" href="/" aria-label="RQCode">
-      <img src="/assets/images/rqcode/logomarcaParaCamisaPreta.png" alt="RQCode Sistemas e Servicos">
+      <img src="/assets/images/rqcode/logo-principal-escuro.png" alt="RQCode Sistemas e Servicos">
     </a>
     <nav class="site-nav" aria-label="Navegacao principal">
       <a href="#solucoes">Solucoes</a>
@@ -28,7 +28,7 @@
       </div>
     </div>
     <div class="hero-visual" aria-label="Marca RQCode">
-      <img src="/assets/images/sistemas/imageSiteRqcode.png" alt="RQCode Sistemas e Servicos">
+      <img src="/assets/images/sistemas/imageSiteRqcode.png" alt="Dashboard RQCode">
     </div>
   </section>
 
@@ -57,7 +57,7 @@
     <div class="solution-grid">
       <?php
       $solutions = [
-        ['Zap Checklist', 'Checklists digitais e controle operacional.', 'zapchecklistPerfil.png'],
+        ['ZVTech Checklist', 'Checklists digitais e controle operacional.', 'zvtechChecklistPerfil.png'],
         ['Fleet Way', 'Gestao de frotas, rotinas e manutencoes.', 'fleewayPerfil.png'],
         ['Gestor ECV', 'Organizacao para empresas de vistoria.', 'gestorecvPerfil.png'],
         ['Alert Mind', 'Alertas, lembretes e vencimentos.', 'alertMindPerfil.png'],

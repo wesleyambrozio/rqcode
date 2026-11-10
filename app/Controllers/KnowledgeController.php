@@ -1,63 +1,58 @@
 <?php
-
 namespace App\Controllers;
-
 use App\Core\Auth;
 use App\Core\Controller;
 use App\Core\Database;
-use App\Models\KnowledgeDocument;
+use App\Services\KnowledgePublisher;
+use Throwable;
 
 final class KnowledgeController extends Controller
 {
-    public function index(): void
+    public function index():void
     {
-        $db = Database::connection();
-        $systemId = (int) $this->input('system_id', 0);
-        $status = trim((string) $this->input('status', ''));
-        $where = [];
-        $params = [];
-        if ($systemId > 0) { $where[] = 'd.system_id = :system_id'; $params['system_id'] = $systemId; }
-        if ($status !== '') { $where[] = 'd.status = :status'; $params['status'] = $status; }
-        $sql = 'select d.*, s.name system_name from knowledge_documents d join saas_systems s on s.id = d.system_id';
-        if ($where) $sql .= ' where ' . implode(' and ', $where);
-        $sql .= ' order by d.updated_at desc, d.created_at desc';
-        $statement = $db->prepare($sql);
-        $statement->execute($params);
-        $documents = $statement->fetchAll();
-        $systems = $db->query('select id, name from saas_systems where active = 1 order by name')->fetchAll();
-        $this->view('knowledge/index', compact('documents', 'systems', 'systemId', 'status') + ['title' => 'Base de conhecimento']);
+        $this->allow();
+        $db=Database::connection(); $systemId=(int)$this->input('system_id',0); $status=trim((string)$this->input('status',''));
+        $where=[]; $params=[];
+        if($systemId>0){$where[]='d.system_id=?';$params[]=$systemId;}
+        if($status!==''){$where[]='d.status=?';$params[]=$status;}
+        $q=$db->prepare('select d.*,s.name system_name from knowledge_documents d join saas_systems s on s.id=d.system_id'.($where?' where '.implode(' and ',$where):'').' order by d.updated_at desc limit 300');
+        $q->execute($params);$documents=$q->fetchAll();
+        $systems=$db->query('select id,name from saas_systems where active=true order by name')->fetchAll();
+        $history=[];
+        if($id=(int)$this->input('history_id',0)){
+            $q=$db->prepare('select version,snapshot_json,created_at from knowledge_document_versions where document_id=? order by version desc limit 30');$q->execute([$id]);$history=$q->fetchAll();
+        }
+        $this->view('knowledge/index',compact('documents','systems','systemId','status','history')+['title'=>'Base de conhecimento']);
     }
-
-    public function store(): void
+    public function store():void { $this->write(false); }
+    public function update():void { $this->write(true); }
+    private function write(bool $update):void
     {
-        $title = trim((string) $this->input('title'));
-        $content = trim((string) $this->input('content'));
-        if ($title === '' || $content === '') redirect('/conhecimento');
-        $slug = trim((string) $this->input('slug')) ?: $this->slug($title);
-        (new KnowledgeDocument())->create([
-            'system_id' => (int) $this->input('system_id'), 'title' => $title, 'slug' => $slug,
-            'summary' => trim((string) $this->input('summary')), 'content' => $content,
-            'document_type' => $this->input('document_type', 'guide'), 'audience' => $this->input('audience', 'support'),
-            'status' => $this->input('status', 'draft'), 'language' => $this->input('language', 'pt-BR'),
-            'tags' => trim((string) $this->input('tags')), 'source_path' => trim((string) $this->input('source_path')),
-            'token_estimate' => (int) ceil(mb_strlen($content) / 4), 'created_by' => Auth::user()['id'] ?? null,
-            'reviewed_at' => $this->input('status') === 'published' ? date('Y-m-d H:i:s') : null,
-        ]);
+        $this->allow();
+        try {
+            $db=Database::connection(); $old=null;
+            if($update){
+                $q=$db->prepare('select * from knowledge_documents where id=?');$q->execute([(int)$this->input('id')]);$old=$q->fetch();
+                if(!$old)throw new \RuntimeException('Documento não encontrado.');
+            }
+            $title=trim((string)$this->input('title',$old['title']??''));
+            $slug=$old['slug']??(trim((string)$this->input('slug'))?:$this->slug($title));
+            $metadata=json_decode($old['metadata_json']??'{}',true)?:[];
+            $metadata['profiles']=array_values(array_intersect((array)$this->input('profiles',['driver','workshop','fleet']),['driver','workshop','fleet']));
+            $metadata['paths']=array_values(array_filter(array_map('trim',explode(',',(string)$this->input('paths',''))),fn($path)=>preg_match('#^/[a-z0-9/-]+$#D',$path)));
+            $permission=(string)$this->input('permission','');
+            $allowed=['manage_templates','exchange_checklists','execute_checklists','view_operations','view_reports','view_vehicles','manage_people'];
+            if ($permission!==''&&!in_array($permission,$allowed,true)) throw new \RuntimeException('Permissão inválida.');
+            $metadata['permission']=$permission?:null; $metadata['edited_in_central']=true;
+            $data=['metadata'=>$metadata];
+            foreach(['title','summary','content','status','audience','source_path','document_type','language','tags'] as $key) $data[$key]=(string)$this->input($key,$old[$key]??(['status'=>'draft','audience'=>'support','document_type'=>'guide','language'=>'pt-BR'][$key]??''));
+            (new KnowledgePublisher($db))->save((int)($old['system_id']??$this->input('system_id')),$slug,$data,$old?(int)$this->input('version'):null,(int)Auth::user()['id']);
+            $_SESSION['flash_success']='Documento salvo com histórico de versão. Publicações chegam aos aplicativos na próxima sincronização.';
+        } catch(Throwable $e) {
+            $_SESSION['flash']='Não foi possível salvar. '.($e instanceof \RuntimeException?$e->getMessage():'Revise os campos e tente novamente.');
+        }
         redirect('/conhecimento');
     }
-
-    public function update(): void
-    {
-        $db = Database::connection();
-        $statement = $db->prepare('update knowledge_documents set status = :status, version = version + 1, reviewed_at = :reviewed_at, updated_at = current_timestamp where id = :id');
-        $status = (string) $this->input('status', 'draft');
-        $statement->execute(['status' => $status, 'reviewed_at' => $status === 'published' ? date('Y-m-d H:i:s') : null, 'id' => (int) $this->input('id')]);
-        redirect('/conhecimento');
-    }
-
-    private function slug(string $value): string
-    {
-        $ascii = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $value) ?: $value;
-        return trim(strtolower(preg_replace('/[^a-zA-Z0-9]+/', '-', $ascii) ?? ''), '-');
-    }
+    private function allow():void {\App\Services\CentralAdminAccess::enforce();}
+    private function slug(string $value):string {$ascii=iconv('UTF-8','ASCII//TRANSLIT//IGNORE',$value)?:$value;return trim(strtolower(preg_replace('/[^a-zA-Z0-9]+/','-',$ascii)??''),'-');}
 }

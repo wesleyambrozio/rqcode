@@ -12,14 +12,17 @@ final class SupportController extends Controller
 {
     public function index(): void
     {
+        $this->allowManager();
         $db = Database::connection();
         $systemFilter=(int)$this->input('system_id');$queueFilter=(int)$this->input('queue_id');$statusFilter=trim((string)$this->input('status'));
         $where=[];$params=[];if($systemFilter>0){$where[]='t.system_id=:system';$params['system']=$systemFilter;}if($queueFilter>0){$where[]='t.queue_id=:queue';$params['queue']=$queueFilter;}if($statusFilter!==''){$where[]='t.status=:status';$params['status']=$statusFilter;}
+        if ((int)$this->input('ticket_id',0)>0) { $where[]='t.id=:ticket';$params['ticket']=(int)$this->input('ticket_id'); }
+        if ($tenant=trim((string)$this->input('tenant_id',''))) { $where[]='t.tenant_external_id=:tenant';$params['tenant']=$tenant; }
         $ticketSql="select t.*, s.name system_name, a.name assigned_name, q.name queue_name,
             (select count(*) from support_ticket_messages m where m.ticket_id = t.id) message_count
             from support_tickets t left join saas_systems s on s.id = t.system_id
             left join admin_users a on a.id = t.assigned_admin_user_id
-            left join support_queues q on q.id=t.queue_id".($where?' where '.implode(' and ',$where):'')." order by case t.status when 'open' then 1 when 'in_progress' then 2 when 'waiting_customer' then 3 else 4 end, t.opened_at desc";
+            left join support_queues q on q.id=t.queue_id".($where?' where '.implode(' and ',$where):'')." order by case t.status when 'open' then 1 when 'in_progress' then 2 when 'waiting_customer' then 3 else 4 end, case t.priority when 'urgent' then 0 when 'high' then 1 else 2 end,t.updated_at desc,t.id desc limit 100 offset ".((max(1,(int)$this->input('page',1))-1)*100);
         $statement=$db->prepare($ticketSql);$statement->execute($params);$tickets=$statement->fetchAll();
         $systems = $db->query('select id, name from saas_systems where active = 1 order by name')->fetchAll();
         $admins = $db->query('select id, name from admin_users where active = 1 order by name')->fetchAll();
@@ -32,16 +35,22 @@ final class SupportController extends Controller
             (select coalesce(sum(d.token_estimate),0) from knowledge_documents d where d.system_id=s.id and d.status='published') rag_tokens,
             (select concat(c.provider,' / ',coalesce(c.model,'nao definido')) from ai_chat_configs c where c.system_id=s.id and c.active=1) active_ai
             from saas_systems s where s.active=1 order by s.name")->fetchAll();
-        $messages = $db->query('select * from support_ticket_messages order by created_at asc')->fetchAll();
+        $ids=implode(',',array_map(fn($row)=>(int)$row['id'],$tickets))?:'0';
+        $messages = $db->query('select * from support_ticket_messages where ticket_id in ('.$ids.') order by created_at asc,id')->fetchAll();
         $messagesByTicket = [];
         foreach ($messages as $message) $messagesByTicket[$message['ticket_id']][] = $message;
-        $this->view('support/index', compact('tickets','systems','admins','queues','aiConfigs','systemOverview','messagesByTicket','systemFilter','queueFilter','statusFilter') + ['title' => 'Suporte e RAG']);
+        $attachmentsByTicket=[];
+        foreach($db->query('select id,ticket_id from support_ticket_attachments where ticket_id in ('.$ids.')')->fetchAll() as $attachment) $attachmentsByTicket[$attachment['ticket_id']][]=$attachment;
+        $this->view('support/index', compact('tickets','systems','admins','queues','aiConfigs','systemOverview','messagesByTicket','attachmentsByTicket','systemFilter','queueFilter','statusFilter') + ['title' => 'Central de suporte']);
     }
 
     public function store(): void
     {
+        $this->allowManager();
+        if (!trim((string)$this->input('subject')) || mb_strlen((string)$this->input('subject'))>160 || mb_strlen((string)$this->input('description'))>6000) { http_response_code(422); exit('Verifique assunto e descrição.'); }
+        $this->validateStatus();
         $systemId=(int)$this->input('system_id');$queueId=(int)$this->input('queue_id');if($queueId>0&&!$this->validQueue($queueId,$systemId))$queueId=0;
-        (new SupportTicket())->create([
+        $createdId=(new SupportTicket())->create([
             'system_id' => $systemId,
             'queue_id' => $queueId ?: null,
             'external_id' => $this->input('external_id'),
@@ -55,23 +64,35 @@ final class SupportController extends Controller
             'opened_at' => $this->input('opened_at'),
             'first_response_due_at' => $this->slaDueAt((string) $this->input('priority')),
         ]);
+        $this->audit($systemId,'admin.ticket.create',$createdId);
         redirect('/suporte');
     }
 
     public function update(): void
     {
+        $this->allowManager(); $this->validateStatus();
         $status = (string) $this->input('status');$ticketId=(int)$this->input('id');$ticket=Database::connection()->prepare('select system_id from support_tickets where id=:id');$ticket->execute(['id'=>$ticketId]);$systemId=(int)$ticket->fetchColumn();$queueId=(int)$this->input('queue_id');if($queueId>0&&!$this->validQueue($queueId,$systemId))$queueId=0;
         $statement = Database::connection()->prepare('update support_tickets set status = :status, priority = :priority, queue_id=:queue, assigned_admin_user_id = :assigned, closed_at = :closed_at, updated_at = current_timestamp where id = :id');
         $statement->execute(['status' => $status, 'priority' => $this->input('priority'), 'queue'=>$queueId?:null,'assigned' => $this->input('assigned_admin_user_id') ?: null, 'closed_at' => $status === 'closed' ? date('Y-m-d H:i:s') : null, 'id' => $ticketId]);
+        $this->audit($systemId,'admin.ticket.update',$ticketId);
         redirect('/suporte');
     }
 
     public function message(): void
     {
+        $this->allowManager();
         $body = trim((string) $this->input('body'));
+        if (mb_strlen($body)>6000) { http_response_code(422); exit('Máximo de 6000 caracteres.'); }
+        $db=Database::connection(); $id=(int)$this->input('ticket_id');
+        $q=$db->prepare('select system_id from support_tickets where id=?'); $q->execute([$id]); $systemId=$q->fetchColumn();
+        if (!$systemId) { http_response_code(404); exit('Chamado não encontrado.'); }
         if ($body !== '') {
+            $db->beginTransaction();
             $statement = Database::connection()->prepare('insert into support_ticket_messages (ticket_id, author_type, author_name, body, internal_note) values (:ticket_id, :author_type, :author_name, :body, :internal_note)');
             $statement->execute(['ticket_id' => (int) $this->input('ticket_id'), 'author_type' => 'admin', 'author_name' => \App\Core\Auth::user()['name'] ?? 'RQCode', 'body' => $body, 'internal_note' => $this->input('internal_note') ? 1 : 0]);
+            if (!$this->input('internal_note')) $db->prepare("update support_tickets set first_responded_at=coalesce(first_responded_at,current_timestamp),status='waiting_customer',closed_at=null,updated_at=current_timestamp where id=?")->execute([$id]);
+            $this->audit((int)$systemId,$this->input('internal_note')?'admin.ticket.note':'admin.ticket.reply',$id);
+            $db->commit();
         }
         redirect('/suporte');
     }
@@ -98,7 +119,26 @@ final class SupportController extends Controller
         $hours = ['low' => 24, 'normal' => 8, 'high' => 4, 'urgent' => 1][$priority] ?? 8;
         return date('Y-m-d H:i:s', time() + ($hours * 3600));
     }
+    public function attachment():void
+    {
+        $this->allowManager();
+        $q=Database::connection()->prepare('select a.* ,t.system_id from support_ticket_attachments a join support_tickets t on t.id=a.ticket_id where a.id=?');
+        $q->execute([(int)$this->input('id')]); $row=$q->fetch();
+        if (!$row) { http_response_code(404); exit('Anexo não encontrado.'); }
+        $this->audit((int)$row['system_id'],'admin.attachment.read',(int)$row['ticket_id']);
+        header('Content-Type: '.$row['mime']); header('X-Content-Type-Options: nosniff'); header('Cache-Control: private, no-store');
+        header('Content-Disposition: attachment; filename="captura-RQ-'.(int)$row['ticket_id'].($row['mime']==='image/png'?'.png':'.jpg').'"');
+        echo base64_decode($row['data'],true); exit;
+    }
+    private function audit(int $system,string $action,int $id):void
+    {
+        Database::connection()->prepare('insert into support_audit(system_id,admin_user_id,action,entity_id) values(?,?,?,?)')->execute([$system,Auth::user()['id'],$action,(string)$id]);
+    }
+    private function validateStatus():void
+    {
+        if (!in_array($this->input('status'),['open','in_progress','waiting_customer','resolved','closed'],true) || !in_array($this->input('priority'),['low','normal','high','urgent'],true)) { http_response_code(422); exit('Status ou prioridade inválido.'); }
+    }
     private function slug(string $value):string{$ascii=iconv('UTF-8','ASCII//TRANSLIT//IGNORE',$value)?:$value;return trim(strtolower(preg_replace('/[^a-zA-Z0-9]+/','-',$ascii)??''),'-');}
     private function validQueue(int $queueId,int $systemId):bool{$statement=Database::connection()->prepare('select count(*) from support_queues where id=:queue and system_id=:system and active=1');$statement->execute(['queue'=>$queueId,'system'=>$systemId]);return(bool)$statement->fetchColumn();}
-    private function allowManager():void{if(!in_array(Auth::user()['role']??'',['owner','admin'],true)){http_response_code(403);exit('Acesso restrito.');}}
+    private function allowManager():void{\App\Services\CentralAdminAccess::enforce();}
 }

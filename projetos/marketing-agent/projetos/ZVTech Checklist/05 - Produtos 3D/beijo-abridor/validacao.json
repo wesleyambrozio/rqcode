@@ -1,0 +1,19 @@
+{
+  "text": "zvtech.com.br",
+  "width_mm": 32,
+  "engraving_depth_mm": 0.6,
+  "location": "face plana traseira",
+  "minimum_wall_before_engraving_mm": 2.1999341299209525,
+  "nonmanifold_edges": 0,
+  "volume_mm3": 8382.518418723123,
+  "dimensions_mm": [
+    49.72200012207031,
+    30.748001098632812,
+    12.012001037597656
+  ],
+  "count": 10,
+  "filament": "PLA",
+  "ams_slot": "A1",
+  "prime_tower": false,
+  "orientation": "Base plana gravada sobre a mesa"
+}

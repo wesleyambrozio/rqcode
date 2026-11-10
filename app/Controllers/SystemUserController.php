@@ -5,15 +5,21 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Core\Database;
 use App\Models\SystemUser;
+use App\Services\SystemUserDirectory;
 
 final class SystemUserController extends Controller
 {
     public function index(): void
     {
         $db = Database::connection();
-        $users = $db->query('select u.*, s.name system_name from system_users u join saas_systems s on s.id = u.system_id order by u.updated_at desc, u.created_at desc')->fetchAll();
+        $systemFilter = max(0, (int) ($_GET['system_id'] ?? 0));
+        [$sort, $direction] = SystemUserDirectory::selection($_GET['sort'] ?? null, $_GET['direction'] ?? null);
+        $users = SystemUserDirectory::users($db, $systemFilter, $sort, $direction);
+        $sorts = SystemUserDirectory::SORTS;
+        $lastSync = null;
+        foreach ($users as $user) if (($user['synced_at'] ?? '') > ($lastSync ?? '')) $lastSync = $user['synced_at'];
         $systems = $db->query('select id, name from saas_systems where active = 1 order by name')->fetchAll();
-        $this->view('system-users/index', compact('users', 'systems') + ['title' => 'Usuários dos sistemas']);
+        $this->view('system-users/index', compact('users', 'systems', 'systemFilter', 'sort', 'direction', 'sorts', 'lastSync') + ['title' => 'Usuários dos sistemas']);
     }
 
     public function store(): void

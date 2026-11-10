@@ -18,7 +18,12 @@ final class SystemController extends Controller
 
     public function store(): void
     {
+        \App\Services\CentralAdminAccess::enforce();
         if ($this->input('entity') === 'plan') {
+            if((new \App\Services\ProductAdministration(Database::connection()))->enabled((int)$this->input('system_id'))){
+                $_SESSION['flash']='Use Administrar produtos para criar um plano sincronizado.';
+                redirect('/administracao-produtos?system_id='.(int)$this->input('system_id'));
+            }
             (new Plan())->create([
                 'system_id' => $this->input('system_id'),
                 'name' => $this->input('name'),

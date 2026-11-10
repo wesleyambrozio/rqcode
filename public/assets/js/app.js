@@ -83,6 +83,28 @@ energyDialog?.querySelector('[data-energy-apply]')?.addEventListener('click', ()
   energyDialog.close();
 });
 
+document.querySelectorAll('[data-material-builder]').forEach((builder) => {
+  const rows = builder.querySelector('[data-material-rows]');
+  const template = builder.querySelector('[data-material-template]');
+  builder.querySelector('[data-material-add]')?.addEventListener('click', () => {
+    if (!rows || !template) return;
+    rows.append(template.content.cloneNode(true));
+    rows.lastElementChild?.querySelector('select')?.focus();
+  });
+  builder.addEventListener('click', (event) => {
+    const remove = event.target.closest('[data-material-remove]');
+    if (!remove) return;
+    const row = remove.closest('.material-row');
+    if (!row) return;
+    if (rows.querySelectorAll('.material-row').length === 1) {
+      row.querySelector('select').value = '';
+      row.querySelector('input').value = '';
+      return;
+    }
+    row.remove();
+  });
+});
+
 const payableToggle = document.querySelector('[data-payable-toggle]');
 const payableDate = document.querySelector('[data-payable-date]');
 function refreshPayableDate() { if (payableDate) payableDate.hidden = !payableToggle?.checked; }
@@ -91,6 +113,8 @@ refreshPayableDate();
 
 function openWorkflowForm(formCard) {
   if (!formCard) return;
+  const listCard = formCard.closest('.list-first-stack, .list-first-layout')?.querySelector('.workflow-list-card');
+  if (listCard) listCard.hidden = true;
   formCard.hidden = false;
   formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
   setTimeout(() => formCard.querySelector('input:not([type="hidden"]), select, textarea')?.focus(), 250);
@@ -98,6 +122,19 @@ function openWorkflowForm(formCard) {
 
 document.querySelectorAll('[data-workflow-open]').forEach((button) => {
   button.addEventListener('click', () => openWorkflowForm(document.getElementById(button.dataset.workflowOpen)));
+});
+
+document.querySelectorAll('[data-workflow-back]').forEach((back) => {
+  back.addEventListener('click', (event) => {
+    const formCard = back.closest('.workflow-form-card');
+    if (!formCard || formCard.hasAttribute('data-form-open')) return;
+    const listCard = formCard.closest('.list-first-stack, .list-first-layout')?.querySelector('.workflow-list-card');
+    if (!listCard) return;
+    event.preventDefault();
+    formCard.hidden = true;
+    listCard.hidden = false;
+    listCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
 });
 
 function addWorkflowButton(listCard, formCard) {
@@ -128,17 +165,21 @@ function setupListFirst(formCard, listCard, container) {
   container.classList.add('list-first-layout');
   container.insertBefore(listCard, formCard);
   formCard.hidden = !formCard.hasAttribute('data-form-open');
+  listCard.hidden = formCard.hasAttribute('data-form-open');
   addWorkflowButton(listCard, formCard);
 
-  const close = document.createElement('button');
-  close.type = 'button';
-  close.className = 'secondary-button small-button workflow-cancel';
-  close.textContent = 'Cancelar';
-  close.addEventListener('click', () => {
-    formCard.hidden = true;
-    listCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  });
-  (formCard.querySelector('.actions') || formCard.querySelector('form'))?.append(close);
+  if (!formCard.querySelector('[data-workflow-back]')) {
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'secondary-button small-button workflow-cancel';
+    close.textContent = 'Cancelar';
+    close.addEventListener('click', () => {
+      formCard.hidden = true;
+      listCard.hidden = false;
+      listCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    (formCard.querySelector('.actions') || formCard.querySelector('form'))?.append(close);
+  }
 }
 
 document.querySelectorAll('section.grid.cols-2').forEach((container) => {

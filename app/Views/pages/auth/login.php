@@ -1,5 +1,5 @@
 <section class="login-box">
-  <h1><?= e(config('app.name')) ?></h1>
+  <img class="login-brand" src="/assets/images/rqcode/logo-principal-claro.png" alt="RQCode">
   <p class="muted">Acesse a central administrativa.</p>
   <?php if (!empty($_SESSION['flash'])): ?>
     <div class="alert"><?= e($_SESSION['flash']); unset($_SESSION['flash']); ?></div>

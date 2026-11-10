@@ -2,7 +2,7 @@
   <div>
     <span class="hero-label">VISÃO EXECUTIVA</span>
     <h2>Controle toda a operação em um só lugar.</h2>
-    <p>Acompanhe clientes, receita, suporte e desempenho dos produtos RQCODE em tempo real.</p>
+    <p>Acompanhe dados sincronizados dos produtos, atendimento e lançamentos financeiros registrados na RQCODE.</p>
   </div>
   <div class="hero-orbit" aria-hidden="true"><span>RQ</span></div>
 </section>
@@ -11,11 +11,13 @@
   <article class="card metric metric-blue"><span class="metric-icon">◎</span><div><span class="muted">Contas</span><strong><?= (int) $metrics['accounts'] ?></strong><small>Base total</small></div></article>
   <article class="card metric metric-cyan"><span class="metric-icon">＋</span><div><span class="muted">Novas contas hoje</span><strong><?= (int) $metrics['new_accounts'] ?></strong><small>Novas adesões</small></div></article>
   <article class="card metric metric-violet"><span class="metric-icon">◇</span><div><span class="muted">Usuários ativos</span><strong><?= (int) $metrics['active_users'] ?></strong><small>Na plataforma</small></div></article>
-  <article class="card metric metric-green"><span class="metric-icon">●</span><div><span class="muted">Usuários online</span><strong><?= (int) $metrics['online_users'] ?></strong><small>Agora</small></div></article>
+  <article class="card metric metric-green"><span class="metric-icon">●</span><div><span class="muted">Usuários online</span><strong><?= $metrics['online_users']===null?'Não disponível':(int)$metrics['online_users'] ?></strong><small><?=$metrics['online_users']===null?'Checklist não coleta presença em tempo real':'Agora'?></small></div></article>
   <article class="card metric metric-amber"><span class="metric-icon">!</span><div><span class="muted">Pagamentos pendentes</span><strong><?= money($metrics['pending_payments']) ?></strong><small>A receber</small></div></article>
   <article class="card metric metric-green"><span class="metric-icon">$</span><div><span class="muted">Recebido em 30 dias</span><strong><?= money($metrics['paid_payments']) ?></strong><small>Fluxo confirmado</small></div></article>
   <article class="card metric metric-red"><span class="metric-icon">?</span><div><span class="muted">Chamados abertos</span><strong><?= (int) $metrics['open_tickets'] ?></strong><small>Aguardando equipe</small></div></article>
 </section>
+
+<?php if($integrated):?><section class="card" style="margin-top:16px"><h2>Produtos integrados</h2><?php foreach($integrated as $source):?><p><strong><?=e($source['name'])?></strong> · dados de <?=e($source['last_sync_at'])?> (servidor) <?=strtotime($source['last_sync_at'])<time()-180?'· ATENÇÃO: sincronização atrasada':''?></p><?php endforeach;?><a href="/administracao-produtos">Administrar planos, contas e suporte</a><p class="muted">Valores financeiros vêm dos lançamentos da RQCODE. Esta integração não cria cobranças no Asaas.</p></section><?php endif;?>
 
 <section class="grid cols-2 dashboard-sections">
   <div class="card data-card">

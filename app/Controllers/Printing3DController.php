@@ -22,6 +22,11 @@ final class Printing3DController extends Controller
         if($editingFilamentId>0){$statement=$db->prepare('select * from filaments_3d where id=:id');$statement->execute(['id'=>$editingFilamentId]);$editingFilament=$statement->fetch()?:null;}
         $products=$db->query("select p.*,c.name category_name,coalesce(sum(pf.quantity_g*(f.purchase_price/nullif(f.spool_net_weight_g,0))),0) filament_cost from products_3d p left join product_categories_3d c on c.id=p.category_id left join product_filaments_3d pf on pf.product_id=p.id left join filaments_3d f on f.id=pf.filament_id group by p.id order by p.active desc,p.name")->fetchAll();
         foreach($products as &$product) $product['unit_cost']=$this->productCost($product,(float)$product['filament_cost']);
+        unset($product);
+        $editingProduct=null;$editingProductFilaments=[];
+        $editingProductId=(int)$this->input('edit_product');
+        if($editingProductId>0){$statement=$db->prepare('select * from products_3d where id=:id');$statement->execute(['id'=>$editingProductId]);$editingProduct=$statement->fetch()?:null;if($editingProduct){$statement=$db->prepare('select filament_id,quantity_g from product_filaments_3d where product_id=:id order by id');$statement->execute(['id'=>$editingProductId]);$editingProductFilaments=$statement->fetchAll();}}
+        $energyRate=(float)($db->query('select energy_rate_kwh from printing_3d_settings where id=1')->fetchColumn()?:0.90329);
         $channels=$db->query('select * from sales_channels_3d order by active desc,name')->fetchAll();
         $orders=$db->query('select o.*,p.name product_name,p.sku from production_orders_3d o join products_3d p on p.id=o.product_id order by o.created_at desc limit 30')->fetchAll();
         $sales=$db->query('select s.*,p.name product_name,c.name channel_name from sales_3d s join products_3d p on p.id=s.product_id left join sales_channels_3d c on c.id=s.channel_id order by s.sold_at desc,s.id desc limit 30')->fetchAll();
@@ -29,7 +34,7 @@ final class Printing3DController extends Controller
         $allowedViews=['dashboard','pecas','categorias','filamentos','producao','vendas','canais'];
         $section=in_array((string)$this->input('view'),$allowedViews,true)?(string)$this->input('view'):'dashboard';
         if($section==='fornecedores')redirect('/fornecedores');
-        $this->view('printing3d/index',compact('suppliers','categories','filaments','editingFilament','products','channels','orders','sales','summary','section')+['title'=>'Producao 3D']);
+        $this->view('printing3d/index',compact('suppliers','categories','filaments','editingFilament','products','editingProduct','editingProductFilaments','energyRate','channels','orders','sales','summary','section')+['title'=>'Producao 3D']);
     }
 
     public function supplier(): void
@@ -69,23 +74,32 @@ final class Printing3DController extends Controller
     public function product(): void
     {
         $this->allowAdmin();
-        $db=Database::connection(); $image=null;
+        $db=Database::connection();$id=(int)$this->input('id');$existing=$id>0?$this->loadProduct($id):null;$image=$existing['image_path']??null;
         $sku=trim((string)$this->input('sku')); $name=trim((string)$this->input('name'));
-        if($sku===''||$name===''){$_SESSION['flash']='Informe SKU e nome da peca.';redirect('/impressao-3d?view=pecas');}
+        if($sku===''||$name===''||($id>0&&!$existing)){$_SESSION['flash']='Informe uma peca valida, SKU e nome.';redirect('/impressao-3d?view=pecas'.($id?'&edit_product='.$id:''));}
         $allowedImages=['image/jpeg'=>'jpg','image/png'=>'png','image/webp'=>'webp'];
         if(isset($_FILES['image']) && $_FILES['image']['error']===UPLOAD_ERR_OK && $_FILES['image']['size']<=5*1024*1024 && is_uploaded_file($_FILES['image']['tmp_name']) && isset($allowedImages[(string)mime_content_type($_FILES['image']['tmp_name'])])) {
             $ext=$allowedImages[(string)mime_content_type($_FILES['image']['tmp_name'])]; $image=bin2hex(random_bytes(16)).'.'.$ext;
             move_uploaded_file($_FILES['image']['tmp_name'],dirname(__DIR__,2).'/public/assets/uploads/products-3d/'.$image);
         }
+        $data=['sku'=>$sku,'name'=>$name,'description'=>$this->input('description')?:null,'technical_notes'=>$this->input('technical_notes')?:null,'category_id'=>(int)$this->input('category_id')?:null,'license_type'=>$this->input('license_type')?:null,'license_source'=>$this->input('license_source')?:null,'license_notes'=>$this->input('license_notes')?:null,'print_time'=>max(0,(int)$this->input('print_time_minutes')),'energy'=>max(0,(float)$this->input('energy_cost')),'labor'=>max(0,(float)$this->input('labor_cost')),'packaging'=>max(0,(float)$this->input('packaging_cost')),'other'=>max(0,(float)$this->input('other_cost')),'waste'=>max(0,(float)$this->input('waste_percent')),'sale_price'=>max(0,(float)$this->input('sale_price')),'stock'=>max(0,(float)$this->input('stock_quantity')),'minimum'=>max(0,(float)$this->input('minimum_stock')),'image'=>$image];
+        $productMaterials=[];foreach((array)($_POST['filament_id']??[]) as $index=>$filamentId){$filamentId=(int)$filamentId;$grams=max(0,(float)($_POST['filament_g'][$index]??0));if($filamentId>0&&$grams>0)$productMaterials[$filamentId]=($productMaterials[$filamentId]??0)+$grams;}
         $db->beginTransaction();
         try {
-            $statement=$db->prepare('insert into products_3d(sku,name,description,technical_notes,category_id,license_type,license_source,license_notes,print_time_minutes,energy_cost,labor_cost,packaging_cost,other_cost,waste_percent,sale_price,stock_quantity,minimum_stock,image_path) values(:sku,:name,:description,:technical_notes,:category_id,:license_type,:license_source,:license_notes,:print_time,:energy,:labor,:packaging,:other,:waste,:sale_price,:stock,:minimum,:image)');
-            $statement->execute(['sku'=>$sku,'name'=>$name,'description'=>$this->input('description')?:null,'technical_notes'=>$this->input('technical_notes')?:null,'category_id'=>(int)$this->input('category_id')?:null,'license_type'=>$this->input('license_type')?:null,'license_source'=>$this->input('license_source')?:null,'license_notes'=>$this->input('license_notes')?:null,'print_time'=>max(0,(int)$this->input('print_time_minutes')),'energy'=>max(0,(float)$this->input('energy_cost')),'labor'=>max(0,(float)$this->input('labor_cost')),'packaging'=>max(0,(float)$this->input('packaging_cost')),'other'=>max(0,(float)$this->input('other_cost')),'waste'=>max(0,(float)$this->input('waste_percent')),'sale_price'=>max(0,(float)$this->input('sale_price')),'stock'=>max(0,(float)$this->input('stock_quantity')),'minimum'=>max(0,(float)$this->input('minimum_stock')),'image'=>$image]);
-            $productId=(int)$db->lastInsertId();
-            foreach((array)($_POST['filament_id']??[]) as $index=>$filamentId) { $grams=(float)($_POST['filament_g'][$index]??0); if((int)$filamentId>0&&$grams>0){$m=$db->prepare('insert into product_filaments_3d(product_id,filament_id,quantity_g) values(:product,:filament,:grams)');$m->execute(['product'=>$productId,'filament'=>(int)$filamentId,'grams'=>$grams]);}}
-            $db->commit(); $_SESSION['flash_success']='Peca e ficha de custo cadastradas.';
-        } catch(Throwable $e){if($db->inTransaction())$db->rollBack();$_SESSION['flash']='Nao foi possivel cadastrar a peca.';}
+            if($id>0){$statement=$db->prepare('update products_3d set sku=:sku,name=:name,description=:description,technical_notes=:technical_notes,category_id=:category_id,license_type=:license_type,license_source=:license_source,license_notes=:license_notes,print_time_minutes=:print_time,energy_cost=:energy,labor_cost=:labor,packaging_cost=:packaging,other_cost=:other,waste_percent=:waste,sale_price=:sale_price,stock_quantity=:stock,minimum_stock=:minimum,image_path=:image where id=:id');$statement->execute($data+['id'=>$id]);$productId=$id;$db->prepare('delete from product_filaments_3d where product_id=:id')->execute(['id'=>$id]);}
+            else{$statement=$db->prepare('insert into products_3d(sku,name,description,technical_notes,category_id,license_type,license_source,license_notes,print_time_minutes,energy_cost,labor_cost,packaging_cost,other_cost,waste_percent,sale_price,stock_quantity,minimum_stock,image_path) values(:sku,:name,:description,:technical_notes,:category_id,:license_type,:license_source,:license_notes,:print_time,:energy,:labor,:packaging,:other,:waste,:sale_price,:stock,:minimum,:image)');$statement->execute($data);$productId=(int)$db->lastInsertId();}
+            foreach($productMaterials as $filamentId=>$grams){$m=$db->prepare('insert into product_filaments_3d(product_id,filament_id,quantity_g) values(:product,:filament,:grams)');$m->execute(['product'=>$productId,'filament'=>$filamentId,'grams'=>$grams]);}
+            $db->commit(); $_SESSION['flash_success']=$id>0?'Peca atualizada.':'Peca e ficha de custo cadastradas.';
+        } catch(Throwable $e){if($db->inTransaction())$db->rollBack();$_SESSION['flash']='Nao foi possivel salvar a peca. Verifique se o SKU ja esta em uso.';}
         redirect('/impressao-3d?view=pecas');
+    }
+
+    public function energySettings(): void
+    {
+        $this->allowAdmin();$rate=max(0,(float)$this->input('energy_rate_kwh'));
+        if($rate<=0){$_SESSION['flash']='Informe um valor de kWh maior que zero.';redirect('/impressao-3d?view=pecas');}
+        $db=Database::connection();$sql=$db->getAttribute(\PDO::ATTR_DRIVER_NAME)==='pgsql'?'insert into printing_3d_settings(id,energy_rate_kwh,updated_at) values(1,:rate,current_timestamp) on conflict(id) do update set energy_rate_kwh=excluded.energy_rate_kwh,updated_at=current_timestamp':'insert into printing_3d_settings(id,energy_rate_kwh) values(1,:rate) on duplicate key update energy_rate_kwh=values(energy_rate_kwh)';$db->prepare($sql)->execute(['rate'=>$rate]);
+        $_SESSION['flash_success']='Valor padrao do kWh atualizado.';redirect('/impressao-3d?view=pecas');
     }
 
     public function category(): void

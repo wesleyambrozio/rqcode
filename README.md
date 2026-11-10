@@ -85,7 +85,7 @@ composer knowledge:import
 ```
 
 - Sincronizar usuarios/contas dos SaaS por webhook ou job agendado.
-- Webhooks de pagamento para conciliacao automatica.
+- Recebimentos Asaas: emissão e conciliação em `/financeiro/asaas`; configuração e homologação em [docs/ASAAS.md](docs/ASAAS.md).
 - SSO administrativo e RBAC por perfil.
 - SLA de suporte, fila por prioridade e alertas.
 - Auditoria completa de acoes administrativas.
